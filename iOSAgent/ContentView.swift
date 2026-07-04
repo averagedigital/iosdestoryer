@@ -419,7 +419,8 @@ struct ContentView: View {
 
   private func refreshShareInbox() {
     do {
-      sharedInboxItems = try ShareInboxService(inboxDirectory: shareInboxDirectory).listItems()
+      let inboxDirectory = try ShareInboxService.appGroupInboxDirectory()
+      sharedInboxItems = try ShareInboxService(inboxDirectory: inboxDirectory).listItems()
       shareInboxStatus = "\(sharedInboxItems.count) item(s)"
       auditLog.record(
         toolName: "share.list_inbox", summary: shareInboxStatus, status: .succeeded)
@@ -1070,10 +1071,6 @@ struct ContentView: View {
 
   private var cameraDirectory: URL {
     URL.documentsDirectory.appending(path: "Camera", directoryHint: .isDirectory)
-  }
-
-  private var shareInboxDirectory: URL {
-    URL.documentsDirectory.appending(path: "ShareInbox", directoryHint: .isDirectory)
   }
 
   private var contactDraft: ContactDraft {

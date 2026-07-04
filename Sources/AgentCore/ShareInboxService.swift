@@ -1,10 +1,27 @@
 import Foundation
 
 public struct ShareInboxService {
+  public static let appGroupIdentifier = "group.com.averagedigital.iosagent"
+
   public let inboxDirectory: URL
 
   public init(inboxDirectory: URL) {
     self.inboxDirectory = inboxDirectory
+  }
+
+  public static func inboxDirectory(inAppGroupContainer containerURL: URL) -> URL {
+    containerURL.appending(path: "ShareInbox", directoryHint: .isDirectory)
+  }
+
+  public static func appGroupInboxDirectory(fileManager: FileManager = .default) throws -> URL {
+    guard
+      let containerURL = fileManager.containerURL(
+        forSecurityApplicationGroupIdentifier: appGroupIdentifier)
+    else {
+      throw ShareInboxError.appGroupUnavailable(appGroupIdentifier)
+    }
+
+    return inboxDirectory(inAppGroupContainer: containerURL)
   }
 
   public func importText(_ text: String, preferredName: String = "shared-text") throws
@@ -84,6 +101,19 @@ public struct ShareInboxService {
         return numberedURL
       }
       counter += 1
+    }
+  }
+}
+
+public enum ShareInboxError: Error, Equatable {
+  case appGroupUnavailable(String)
+}
+
+extension ShareInboxError: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case .appGroupUnavailable(let identifier):
+      "App Group container is unavailable: \(identifier)."
     }
   }
 }

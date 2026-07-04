@@ -22,7 +22,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `contacts.permission_status`, `contacts.search`, `contacts.create`, `contacts.update_with_preview`, `contacts.delete_with_preview`, `contacts.find_duplicate_candidates`, and `contacts.merge_preview` use Contacts after explicit authorization.
 - `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - `notify.schedule` and `notify.cancel` use UserNotifications after explicit permission.
-- `share.import_text`, `share.import_url`, `share.import_file`, `share.import_image`, and `share.list_inbox` model Share Extension ingestion into an app-owned inbox. The extension target still needs App Group wiring before other apps can send content into it.
+- `AgentShareExtension` receives shared text, URLs, images, and files through the iOS share sheet, then writes them into the shared App Group inbox for `share.list_inbox`.
 - `app.open_url` and `app.open_deeplink` use `UIApplication.open` for explicit user-visible navigation only.
 - `app_intents.list_supported_actions` and `app_intents.invoke_own_action` expose this app's own supported action list; `OpenAgentWorkspaceIntent` registers an App Shortcut for opening the workspace.
 - `audio.record` and `speech.transcribe` use AVFoundation and Speech after explicit user action and permission; transcription requires on-device recognition.
@@ -73,4 +73,4 @@ Sources checked:
 - `Sources/AgentCore/`: testable agent contracts and local tool metadata.
 - `Tests/AgentCoreTests/`: narrow behavior tests.
 
-Next feature should be the real Share Extension target/App Group wiring; the current share inbox core already models the app-owned ingestion behavior.
+Next feature should be UI/privacy polish around imported sources and shared items: clearer local-only copy, per-item import-to-index action, and empty/error states.

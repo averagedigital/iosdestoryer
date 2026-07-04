@@ -32,7 +32,20 @@
 		10000000000000000000002B /* FileSourceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002C /* FileSourceService.swift */; };
 		10000000000000000000002D /* FileOperationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002E /* FileOperationService.swift */; };
 		100000000000000000000090 /* LocalIndexService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000091 /* LocalIndexService.swift */; };
+		1000000000000000000000B5 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B1 /* ShareViewController.swift */; };
+		1000000000000000000000B6 /* ShareInboxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009B /* ShareInboxService.swift */; };
+		1000000000000000000000B7 /* AgentShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B0 /* AgentShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1000000000000000000000C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000040 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1000000000000000000000BC;
+			remoteInfo = AgentShareExtension;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		100000000000000000000010 /* iOSAgent.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSAgent.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -62,13 +75,33 @@
 		100000000000000000000024 /* PhotoPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* ContactPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* EventPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPermissionService.swift; sourceTree = "<group>"; };
+		1000000000000000000000A6 /* iOSAgent.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iOSAgent.entitlements; sourceTree = "<group>"; };
+		1000000000000000000000B0 /* AgentShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AgentShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1000000000000000000000B1 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		1000000000000000000000B2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1000000000000000000000B3 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1000000000000000000000C1 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1000000000000000000000B7 /* AgentShareExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXGroup section */
 		100000000000000000000020 = {
 			isa = PBXGroup;
 			children = (
 				100000000000000000000021 /* iOSAgent */,
+				1000000000000000000000B8 /* ShareExtension */,
 				100000000000000000000022 /* AgentCore */,
 				100000000000000000000023 /* Products */,
 			);
@@ -81,6 +114,7 @@
 				100000000000000000000011 /* iOSAgentApp.swift */,
 				100000000000000000000012 /* ContentView.swift */,
 				100000000000000000000015 /* Info.plist */,
+				1000000000000000000000A6 /* iOSAgent.entitlements */,
 			);
 			path = iOSAgent;
 			sourceTree = "<group>";
@@ -118,8 +152,19 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000010 /* iOSAgent.app */,
+				1000000000000000000000B0 /* AgentShareExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		1000000000000000000000B8 /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				1000000000000000000000B1 /* ShareViewController.swift */,
+				1000000000000000000000B2 /* Info.plist */,
+				1000000000000000000000B3 /* ShareExtension.entitlements */,
+			);
+			path = ShareExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -132,15 +177,34 @@
 				100000000000000000000031 /* Sources */,
 				100000000000000000000032 /* Frameworks */,
 				100000000000000000000033 /* Resources */,
+				1000000000000000000000C1 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				1000000000000000000000C2 /* PBXTargetDependency */,
 			);
 			name = iOSAgent;
 			productName = iOSAgent;
 			productReference = 100000000000000000000010 /* iOSAgent.app */;
 			productType = "com.apple.product-type.application";
+		};
+		1000000000000000000000BC /* AgentShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1000000000000000000000C0 /* Build configuration list for PBXNativeTarget "AgentShareExtension" */;
+			buildPhases = (
+				1000000000000000000000B9 /* Sources */,
+				1000000000000000000000BA /* Frameworks */,
+				1000000000000000000000BB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AgentShareExtension;
+			productName = AgentShareExtension;
+			productReference = 1000000000000000000000B0 /* AgentShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -153,6 +217,9 @@
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					100000000000000000000030 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					1000000000000000000000BC = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -172,6 +239,7 @@
 			projectRoot = "";
 			targets = (
 				100000000000000000000030 /* iOSAgent */,
+				1000000000000000000000BC /* AgentShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -184,10 +252,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		1000000000000000000000BA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXResourcesBuildPhase section */
 		100000000000000000000033 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1000000000000000000000BB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -229,7 +311,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		1000000000000000000000B9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1000000000000000000000B5 /* ShareViewController.swift in Sources */,
+				1000000000000000000000B6 /* ShareInboxService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1000000000000000000000C2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1000000000000000000000BC /* AgentShareExtension */;
+			targetProxy = 1000000000000000000000C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		100000000000000000000051 /* Debug */ = {
@@ -349,6 +448,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iOSAgent/iOSAgent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -372,6 +472,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iOSAgent/iOSAgent.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -384,6 +485,58 @@
 				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.averagedigital.iosagent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		1000000000000000000000BE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.averagedigital.iosagent.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1000000000000000000000BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.averagedigital.iosagent.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 6.0;
@@ -408,6 +561,15 @@
 			buildConfigurations = (
 				100000000000000000000061 /* Debug */,
 				100000000000000000000062 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1000000000000000000000C0 /* Build configuration list for PBXNativeTarget "AgentShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1000000000000000000000BE /* Debug */,
+				1000000000000000000000BF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

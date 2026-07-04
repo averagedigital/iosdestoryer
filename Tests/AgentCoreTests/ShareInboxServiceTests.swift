@@ -3,6 +3,15 @@ import XCTest
 @testable import AgentCore
 
 final class ShareInboxServiceTests: XCTestCase {
+  func testBuildsInboxDirectoryInsideAppGroupContainer() throws {
+    let temp = try TemporaryDirectory()
+
+    let inbox = ShareInboxService.inboxDirectory(inAppGroupContainer: temp.url)
+
+    XCTAssertEqual(inbox.lastPathComponent, "ShareInbox")
+    XCTAssertEqual(inbox.deletingLastPathComponent(), temp.url)
+  }
+
   func testImportsTextAndListsSharedInbox() throws {
     let temp = try TemporaryDirectory()
     let service = ShareInboxService(inboxDirectory: temp.url)
