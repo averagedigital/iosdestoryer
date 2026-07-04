@@ -2201,6 +2201,17 @@ private struct ToolSection: View {
       Text("Tools")
         .font(.headline)
 
+      HStack(spacing: 8) {
+        AgentStatusPill(
+          text: "\(registry.tools.count) tools", systemImage: "wrench.and.screwdriver"
+        )
+        .monospacedDigit()
+        AgentStatusPill(text: "\(previewToolCount) preview", systemImage: "checkmark.shield")
+          .monospacedDigit()
+        AgentStatusPill(text: "\(frameworkCount) frameworks", systemImage: "apple.logo")
+          .monospacedDigit()
+      }
+
       ForEach(registry.tools) { tool in
         HStack {
           VStack(alignment: .leading, spacing: 2) {
@@ -2223,6 +2234,14 @@ private struct ToolSection: View {
         .padding(.vertical, 6)
       }
     }
+  }
+
+  private var previewToolCount: Int {
+    registry.tools.filter(\.requiresPreview).count
+  }
+
+  private var frameworkCount: Int {
+    Set(registry.tools.flatMap(\.appleFrameworks)).count
   }
 }
 
