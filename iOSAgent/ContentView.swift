@@ -5,6 +5,7 @@ import VisionKit
 
 struct ContentView: View {
   private let registry = ToolRegistry.defaultRegistry()
+  private let commandRouter = AgentCommandRouter()
   @State private var message = ""
   @State private var auditLog = AuditLog()
   @State private var isImportingFile = false
@@ -221,14 +222,9 @@ struct ContentView: View {
             .textFieldStyle(.roundedBorder)
             .lineLimit(1...4)
 
-          Button("Send") {
-            auditLog.record(
-              toolName: "agent.chat", summary: message.isEmpty ? "empty message ignored" : message,
-              status: .succeeded)
-            message = ""
-          }
-          .buttonStyle(.borderedProminent)
-          .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+          Button("Send", action: sendMessage)
+            .buttonStyle(.borderedProminent)
+            .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding()
         .background(.regularMaterial)
@@ -503,6 +499,43 @@ struct ContentView: View {
       toolName: "index.export_context_bundle",
       summary: "\(indexResults.count) chunks",
       status: .succeeded)
+  }
+
+  private func sendMessage() {
+    let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !text.isEmpty else { return }
+
+    auditLog.record(toolName: "agent.chat", summary: text, status: .succeeded)
+    if let route = commandRouter.route(text) {
+      runAgentRoute(route, message: text)
+    } else {
+      auditLog.record(
+        toolName: "agent.route", summary: "No local tool matched.", status: .failed)
+    }
+    message = ""
+  }
+
+  private func runAgentRoute(_ route: AgentCommandRoute, message: String) {
+    switch route.toolName {
+    case "index.search":
+      indexQuery = message
+      searchIndex()
+    case "index.export_context_bundle":
+      exportIndexBundle()
+    case "reminders.create":
+      reminderTitle = message
+      createReminder()
+    case "contacts.create":
+      contactGivenName = message
+      createContact()
+    case "camera.scan_document":
+      scanDocument()
+    case "photos.classify_candidates":
+      classifyPhotoCandidates()
+    default:
+      auditLog.record(
+        toolName: route.toolName, summary: "Route not wired.", status: .failed)
+    }
   }
 
   private func handleOCRImageImport(_ result: Result<[URL], Error>) {
