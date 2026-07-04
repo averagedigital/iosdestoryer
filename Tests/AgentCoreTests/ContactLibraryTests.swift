@@ -92,6 +92,19 @@ final class ContactLibraryTests: XCTestCase {
     XCTAssertEqual(provider.updatedDraft, draft)
     XCTAssertEqual(provider.deletedID, "2")
   }
+
+  func testAppliesMergePreviewThroughProvider() throws {
+    let provider = StubContactProvider(contacts: sampleContacts)
+    let service = ContactLibraryService(provider: provider)
+    let preview = service.mergePreview(contacts: [sampleContacts[0], sampleContacts[2]])
+
+    let merged = try service.apply(preview)
+
+    XCTAssertEqual(merged.id, "1")
+    XCTAssertEqual(merged.phoneNumbers, ["+1 555 0100"])
+    XCTAssertEqual(merged.emailAddresses, ["ivan@example.com"])
+    XCTAssertEqual(provider.mergedPreview, preview)
+  }
 }
 
 private let sampleContacts = [
@@ -123,6 +136,7 @@ private final class StubContactProvider: ContactProviding {
   var updatedID = ""
   var updatedDraft: ContactDraft?
   var deletedID = ""
+  var mergedPreview: ContactMergePreview?
 
   init(contacts: [ContactSummary]) {
     self.contacts = contacts
@@ -156,5 +170,13 @@ private final class StubContactProvider: ContactProviding {
 
   func deleteContact(id: String) throws {
     deletedID = id
+  }
+
+  func mergeContacts(_ preview: ContactMergePreview) throws -> ContactSummary {
+    mergedPreview = preview
+    guard let contact = preview.mergedContact else {
+      throw ContactLibraryError.missingMergedContact
+    }
+    return contact
   }
 }

@@ -100,6 +100,13 @@ public struct ContactLibraryService {
       duplicateContactIDs: contacts.dropFirst().map(\.id))
   }
 
+  public func apply(_ preview: ContactMergePreview) throws -> ContactSummary {
+    guard preview.mergedContact != nil else {
+      throw ContactLibraryError.missingMergedContact
+    }
+    return try provider.mergeContacts(preview)
+  }
+
   private func unique(_ values: [String]) -> [String] {
     var seen: Set<String> = []
     return values.filter { seen.insert($0.lowercased()).inserted }
@@ -111,6 +118,7 @@ public protocol ContactProviding {
   func createContact(_ draft: ContactDraft) throws -> ContactSummary
   func updateContact(id: String, draft: ContactDraft) throws -> ContactSummary
   func deleteContact(id: String) throws
+  func mergeContacts(_ preview: ContactMergePreview) throws -> ContactSummary
 }
 
 public struct ContactDraft: Equatable, Sendable {
@@ -173,6 +181,7 @@ public enum ContactChangeAction: String, Sendable {
 
 public enum ContactLibraryError: Error, Equatable {
   case missingDraft
+  case missingMergedContact
   case contactNotFound(String)
   case mutableContactUnavailable(String)
   case contactsUnavailable
@@ -278,6 +287,30 @@ public struct ContactSummary: Equatable, Identifiable, Sendable {
       try store.execute(request)
     }
 
+    public func mergeContacts(_ preview: ContactMergePreview) throws -> ContactSummary {
+      guard let mergedContact = preview.mergedContact else {
+        throw ContactLibraryError.missingMergedContact
+      }
+      let store = CNContactStore()
+      let sourcePrimary = try fetchContact(id: preview.primaryContactID, store: store)
+      guard let primary = sourcePrimary.mutableCopy() as? CNMutableContact else {
+        throw ContactLibraryError.mutableContactUnavailable(preview.primaryContactID)
+      }
+      apply(mergedContact, to: primary)
+
+      let request = CNSaveRequest()
+      request.update(primary)
+      for duplicateID in preview.duplicateContactIDs {
+        let sourceDuplicate = try fetchContact(id: duplicateID, store: store)
+        guard let duplicate = sourceDuplicate.mutableCopy() as? CNMutableContact else {
+          throw ContactLibraryError.mutableContactUnavailable(duplicateID)
+        }
+        request.delete(duplicate)
+      }
+      try store.execute(request)
+      return ContactSummary(contact: primary)
+    }
+
     private func fetchContact(id: String, store: CNContactStore) throws -> CNContact {
       let predicate = CNContact.predicateForContacts(withIdentifiers: [id])
       let contacts = try store.unifiedContacts(matching: predicate, keysToFetch: contactKeys())
@@ -304,6 +337,18 @@ public struct ContactSummary: Equatable, Identifiable, Sendable {
         : [
           CNLabeledValue(label: CNLabelHome, value: draft.emailAddress as NSString)
         ]
+    }
+
+    private func apply(_ summary: ContactSummary, to contact: CNMutableContact) {
+      contact.givenName = summary.givenName
+      contact.familyName = summary.familyName
+      contact.organizationName = summary.organizationName
+      contact.phoneNumbers = summary.phoneNumbers.map {
+        CNLabeledValue(label: CNLabelPhoneNumberMobile, value: CNPhoneNumber(stringValue: $0))
+      }
+      contact.emailAddresses = summary.emailAddresses.map {
+        CNLabeledValue(label: CNLabelHome, value: $0 as NSString)
+      }
     }
   }
 
@@ -352,6 +397,10 @@ public struct ContactSummary: Equatable, Identifiable, Sendable {
     }
 
     public func deleteContact(id: String) throws {
+      throw ContactLibraryError.contactsUnavailable
+    }
+
+    public func mergeContacts(_ preview: ContactMergePreview) throws -> ContactSummary {
       throw ContactLibraryError.contactsUnavailable
     }
   }

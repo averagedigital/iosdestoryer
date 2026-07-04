@@ -48,6 +48,7 @@ struct ContentView: View {
   @State private var contactResults: [ContactSummary] = []
   @State private var contactPreview: String = ""
   @State private var pendingContactPreview: ContactChangePreview?
+  @State private var pendingContactMergePreview: ContactMergePreview?
   @State private var calendarPermissionStatus = "Not Checked"
   @State private var reminderPermissionStatus = "Not Checked"
   @State private var calendarQuery = ""
@@ -153,7 +154,7 @@ struct ContentView: View {
               phone: $contactPhone,
               contacts: contactResults,
               preview: contactPreview,
-              hasPendingPreview: pendingContactPreview != nil,
+              hasPendingPreview: pendingContactPreview != nil || pendingContactMergePreview != nil,
               onCheckTapped: checkContactPermission,
               onSearchTapped: searchContacts,
               onDuplicatesTapped: findDuplicateContacts,
@@ -821,6 +822,7 @@ struct ContentView: View {
       contactResults = try ContactLibraryService().search(contactQuery)
       contactPreview = ""
       pendingContactPreview = nil
+      pendingContactMergePreview = nil
       auditLog.record(
         toolName: "contacts.search", summary: "\(contactResults.count) contacts",
         status: .succeeded)
@@ -828,6 +830,7 @@ struct ContentView: View {
       contactResults = []
       contactPreview = ""
       pendingContactPreview = nil
+      pendingContactMergePreview = nil
       auditLog.record(
         toolName: "contacts.search", summary: error.localizedDescription, status: .failed)
     }
@@ -838,6 +841,7 @@ struct ContentView: View {
       contactResults = try ContactLibraryService().findDuplicateCandidates()
       contactPreview = ""
       pendingContactPreview = nil
+      pendingContactMergePreview = nil
       auditLog.record(
         toolName: "contacts.find_duplicate_candidates",
         summary: "\(contactResults.count) candidates",
@@ -856,6 +860,7 @@ struct ContentView: View {
       contactResults = [contact]
       contactPreview = ""
       pendingContactPreview = nil
+      pendingContactMergePreview = nil
       auditLog.record(
         toolName: "contacts.create", summary: contact.displayLabel, status: .succeeded)
     } catch {
@@ -868,6 +873,7 @@ struct ContentView: View {
     guard let contact = contactResults.first else { return }
     let preview = ContactLibraryService().updatePreview(contact: contact, draft: contactDraft)
     pendingContactPreview = preview
+    pendingContactMergePreview = nil
     contactPreview = preview.summary
     auditLog.record(
       toolName: "contacts.update_with_preview", summary: preview.summary,
@@ -878,6 +884,7 @@ struct ContentView: View {
     guard let contact = contactResults.first else { return }
     let preview = ContactLibraryService().deletePreview(contact: contact)
     pendingContactPreview = preview
+    pendingContactMergePreview = nil
     contactPreview = preview.summary
     auditLog.record(
       toolName: "contacts.delete_with_preview", summary: preview.summary,
@@ -888,6 +895,7 @@ struct ContentView: View {
     let preview = ContactLibraryService().mergePreview(contacts: contactResults)
     guard let contact = preview.mergedContact else { return }
     pendingContactPreview = nil
+    pendingContactMergePreview = preview
     contactPreview =
       "Merge \(preview.duplicateContactIDs.count) into \(contact.displayLabel)"
     auditLog.record(
@@ -895,6 +903,28 @@ struct ContentView: View {
   }
 
   private func confirmContactPreview() {
+    if let preview = pendingContactMergePreview {
+      do {
+        let merged = try ContactLibraryService().apply(preview)
+        pendingContactMergePreview = nil
+        contactPreview =
+          "Confirmed: Merge \(preview.duplicateContactIDs.count) into \(merged.displayLabel)"
+        let removedIDs = Set(preview.duplicateContactIDs)
+        contactResults =
+          [merged]
+          + contactResults.filter {
+            $0.id != merged.id && !removedIDs.contains($0.id)
+          }
+        auditLog.record(
+          toolName: "contacts.merge_preview", summary: contactPreview, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "contacts.merge_preview", summary: error.localizedDescription,
+          status: .failed)
+      }
+      return
+    }
+
     guard let preview = pendingContactPreview else { return }
     do {
       let updated = try ContactLibraryService().apply(preview)
