@@ -27,7 +27,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - Contact merge requires a preview first, then Confirm updates the primary contact and removes duplicate contacts in a Contacts save request.
 - `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - Calendar event update/delete and reminder update tools require a preview first, then a separate Confirm action applies the stored preview through EventKit save/remove requests.
-- `notify.schedule` and `notify.cancel` use UserNotifications after explicit permission.
+- `notify.permission`, `notify.schedule`, and `notify.cancel` use UserNotifications with explicit permission before scheduling.
 - `AgentShareExtension` receives shared text, URLs, images, and files through the iOS share sheet, then writes them into the shared App Group inbox for `share.list_inbox`.
 - Shared inbox items can be imported into app-managed Files and the local index from the Sources UI.
 - `app.open_url` and `app.open_deeplink` use `UIApplication.open` for explicit user-visible navigation only.

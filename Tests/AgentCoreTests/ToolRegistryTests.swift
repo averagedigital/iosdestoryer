@@ -40,6 +40,7 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "reminders.create"))
     XCTAssertNotNil(registry.tool(named: "reminders.update_with_preview"))
     XCTAssertNotNil(registry.tool(named: "reminders.complete"))
+    XCTAssertNotNil(registry.tool(named: "notify.permission"))
     XCTAssertNotNil(registry.tool(named: "notify.schedule"))
     XCTAssertNotNil(registry.tool(named: "notify.cancel"))
     XCTAssertNotNil(registry.tool(named: "share.import_text"))
