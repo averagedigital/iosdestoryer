@@ -43,6 +43,15 @@ public struct ToolRegistry: Sendable {
       AgentTool(
         name: "photos.find_duplicates_or_candidates", domain: .photos,
         appleFrameworks: ["Photos"]),
+      AgentTool(name: "photos.create_album", domain: .photos, appleFrameworks: ["Photos"]),
+      AgentTool(name: "photos.add_to_album", domain: .photos, appleFrameworks: ["Photos"]),
+      AgentTool(
+        name: "photos.remove_from_album_with_preview", domain: .photos,
+        appleFrameworks: ["Photos"], isDestructive: true),
+      AgentTool(name: "photos.favorite", domain: .photos, appleFrameworks: ["Photos"]),
+      AgentTool(
+        name: "photos.hide_with_preview", domain: .photos, appleFrameworks: ["Photos"],
+        isDestructive: true),
       AgentTool(
         name: "photos.classify_candidates", domain: .photos, appleFrameworks: ["Photos"]),
       AgentTool(

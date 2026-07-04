@@ -37,6 +37,31 @@ final class PhotoLibraryTests: XCTestCase {
 
     XCTAssertEqual(service.findDuplicateCandidates().map(\.id), ["square"])
   }
+
+  func testCreatesAlbumAddsAssetsAndFavoritesAsset() async throws {
+    let service = PhotoLibraryService(provider: StubPhotoAssetProvider(assets: sampleAssets))
+
+    let album = try await service.createAlbum(title: "Docs")
+    let result = try await service.addToAlbum(assetIDs: ["doc"], albumTitle: album.title)
+    let favorite = try await service.favorite(assetID: "doc")
+
+    XCTAssertEqual(album.title, "Docs")
+    XCTAssertEqual(result.assetIDs, ["doc"])
+    XCTAssertTrue(favorite.isFavorite)
+  }
+
+  func testBuildsPhotoMutationPreviews() {
+    let service = PhotoLibraryService(provider: StubPhotoAssetProvider(assets: sampleAssets))
+
+    let remove = service.removeFromAlbumPreview(assetIDs: ["doc"], albumTitle: "Docs")
+    let hide = service.hidePreview(assetIDs: ["doc"])
+    let delete = service.deletePreview(assetIDs: ["doc"])
+
+    XCTAssertEqual(remove.action, .removeFromAlbum)
+    XCTAssertEqual(hide.action, .hide)
+    XCTAssertEqual(delete.action, .delete)
+    XCTAssertEqual(delete.assetIDs, ["doc"])
+  }
 }
 
 private let sampleAssets = [
@@ -56,5 +81,29 @@ private struct StubPhotoAssetProvider: PhotoAssetProviding {
 
   func fetchAssets(limit: Int) -> [PhotoAssetSummary] {
     Array(assets.prefix(limit))
+  }
+
+  func createAlbum(title: String) async throws -> PhotoAlbumSummary {
+    PhotoAlbumSummary(id: "album-\(title)", title: title)
+  }
+
+  func addAssets(_ assetIDs: [String], toAlbumNamed albumTitle: String) async throws
+    -> PhotoAlbumMutationResult
+  {
+    PhotoAlbumMutationResult(albumTitle: albumTitle, assetIDs: assetIDs)
+  }
+
+  func favoriteAsset(id: String) async throws -> PhotoAssetSummary {
+    guard let asset = assets.first(where: { $0.id == id }) else {
+      throw PhotoLibraryError.assetNotFound(id)
+    }
+    return PhotoAssetSummary(
+      id: asset.id,
+      creationDate: asset.creationDate,
+      pixelWidth: asset.pixelWidth,
+      pixelHeight: asset.pixelHeight,
+      isScreenshot: asset.isScreenshot,
+      isFavorite: true,
+      isHidden: asset.isHidden)
   }
 }

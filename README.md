@@ -16,7 +16,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `index.rebuild`, `index.search`, `index.get_chunks`, and `index.export_context_bundle` build a local chunk index from app-managed UTF-8 imports.
 - `vision.ocr_image` OCR over user-picked image files through Apple's Vision framework.
 - `photos.permission_status` inspectable PhotoKit authorization status without reading assets.
-- `photos.list_assets`, `photos.find_screenshots`, `photos.find_documents`, and `photos.classify_candidates` read PhotoKit asset metadata after Photos authorization.
+- `photos.list_assets`, `photos.find_screenshots`, `photos.find_documents`, `photos.classify_candidates`, `photos.create_album`, `photos.add_to_album`, `photos.favorite`, `photos.remove_from_album_with_preview`, `photos.hide_with_preview`, and `photos.delete_with_preview` use PhotoKit after Photos authorization.
 - `contacts.permission_status`, `contacts.search`, `contacts.create`, `contacts.update_with_preview`, `contacts.delete_with_preview`, `contacts.find_duplicate_candidates`, and `contacts.merge_preview` use Contacts after explicit authorization.
 - `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
@@ -36,6 +36,8 @@ Sources checked:
 - https://developer.apple.com/documentation/uikit/providing-access-to-directories
 - https://developer.apple.com/documentation/Photos/PHPhotoLibrary
 - https://developer.apple.com/documentation/photokit/requesting-changes-to-the-photo-library
+- https://developer.apple.com/documentation/photos/phassetchangerequest
+- https://developer.apple.com/documentation/photos/phassetcollectionchangerequest
 - https://developer.apple.com/documentation/contacts/cncontactstore
 - https://developer.apple.com/documentation/contacts/cnsaverequest
 - https://developer.apple.com/documentation/eventkit/ekeventstore/calendaritem%28withidentifier%3A%29

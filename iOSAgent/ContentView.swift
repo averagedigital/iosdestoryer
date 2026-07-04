@@ -23,8 +23,10 @@ struct ContentView: View {
   @State private var indexBundleMarkdown = ""
   @State private var ocrText = ""
   @State private var photoPermissionStatus = "Not Checked"
+  @State private var photoAlbumTitle = "Agent Docs"
   @State private var photoAssets: [PhotoAssetSummary] = []
   @State private var photoClassifications: [PhotoClassificationResult] = []
+  @State private var photoPreview = ""
   @State private var contactPermissionStatus = "Not Checked"
   @State private var contactQuery = ""
   @State private var contactGivenName = "New"
@@ -84,12 +86,20 @@ struct ContentView: View {
               onOCRImageTapped: { isImportingOCRImage = true })
             PhotosSection(
               status: photoPermissionStatus,
+              albumTitle: $photoAlbumTitle,
               assets: photoAssets,
               classifications: photoClassifications,
+              preview: photoPreview,
               onCheckTapped: checkPhotoPermission,
               onListTapped: listPhotoAssets,
               onScreenshotsTapped: findScreenshots,
-              onClassifyTapped: classifyPhotoCandidates)
+              onClassifyTapped: classifyPhotoCandidates,
+              onCreateAlbumTapped: createPhotoAlbum,
+              onAddToAlbumTapped: addFirstPhotoToAlbum,
+              onFavoriteTapped: favoriteFirstPhoto,
+              onRemovePreviewTapped: previewPhotoRemoveFromAlbum,
+              onHidePreviewTapped: previewPhotoHide,
+              onDeletePreviewTapped: previewPhotoDelete)
             ContactsSection(
               status: contactPermissionStatus,
               query: $contactQuery,
@@ -381,6 +391,7 @@ struct ContentView: View {
   private func listPhotoAssets() {
     photoAssets = PhotoLibraryService().listAssets(limit: 20)
     photoClassifications = []
+    photoPreview = ""
     auditLog.record(
       toolName: "photos.list_assets", summary: "\(photoAssets.count) assets", status: .succeeded)
   }
@@ -388,6 +399,7 @@ struct ContentView: View {
   private func findScreenshots() {
     photoAssets = PhotoLibraryService().findScreenshots(limit: 50)
     photoClassifications = []
+    photoPreview = ""
     auditLog.record(
       toolName: "photos.find_screenshots", summary: "\(photoAssets.count) screenshots",
       status: .succeeded)
@@ -396,10 +408,81 @@ struct ContentView: View {
   private func classifyPhotoCandidates() {
     photoClassifications = PhotoLibraryService().classifyCandidates(limit: 20)
     photoAssets = photoClassifications.map(\.asset)
+    photoPreview = ""
     auditLog.record(
       toolName: "photos.classify_candidates",
       summary: "\(photoClassifications.count) assets",
       status: .succeeded)
+  }
+
+  private func createPhotoAlbum() {
+    Task {
+      do {
+        let album = try await PhotoLibraryService().createAlbum(title: photoAlbumTitle)
+        photoPreview = ""
+        auditLog.record(toolName: "photos.create_album", summary: album.title, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "photos.create_album", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func addFirstPhotoToAlbum() {
+    guard let asset = photoAssets.first else { return }
+    Task {
+      do {
+        let result = try await PhotoLibraryService().addToAlbum(
+          assetIDs: [asset.id], albumTitle: photoAlbumTitle)
+        photoPreview = ""
+        auditLog.record(
+          toolName: "photos.add_to_album", summary: "\(result.assetIDs.count) assets",
+          status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "photos.add_to_album", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func favoriteFirstPhoto() {
+    guard let asset = photoAssets.first else { return }
+    Task {
+      do {
+        let favorite = try await PhotoLibraryService().favorite(assetID: asset.id)
+        photoAssets = [favorite] + Array(photoAssets.dropFirst())
+        photoPreview = ""
+        auditLog.record(toolName: "photos.favorite", summary: favorite.id, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "photos.favorite", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func previewPhotoRemoveFromAlbum() {
+    let preview = PhotoLibraryService().removeFromAlbumPreview(
+      assetIDs: selectedPhotoIDs, albumTitle: photoAlbumTitle)
+    photoPreview = preview.summary
+    auditLog.record(
+      toolName: "photos.remove_from_album_with_preview", summary: preview.summary,
+      status: .needsConfirmation)
+  }
+
+  private func previewPhotoHide() {
+    let preview = PhotoLibraryService().hidePreview(assetIDs: selectedPhotoIDs)
+    photoPreview = preview.summary
+    auditLog.record(
+      toolName: "photos.hide_with_preview", summary: preview.summary,
+      status: .needsConfirmation)
+  }
+
+  private func previewPhotoDelete() {
+    let preview = PhotoLibraryService().deletePreview(assetIDs: selectedPhotoIDs)
+    photoPreview = preview.summary
+    auditLog.record(
+      toolName: "photos.delete_with_preview", summary: preview.summary,
+      status: .needsConfirmation)
   }
 
   private func checkContactPermission() {
@@ -617,6 +700,10 @@ struct ContentView: View {
       organizationName: "",
       phoneNumber: contactPhone,
       emailAddress: contactEmail)
+  }
+
+  private var selectedPhotoIDs: [String] {
+    photoAssets.prefix(10).map(\.id)
   }
 
   private var calendarEventDraft: CalendarEventDraft {
@@ -914,12 +1001,20 @@ private struct VisionSection: View {
 
 private struct PhotosSection: View {
   let status: String
+  @Binding var albumTitle: String
   let assets: [PhotoAssetSummary]
   let classifications: [PhotoClassificationResult]
+  let preview: String
   let onCheckTapped: () -> Void
   let onListTapped: () -> Void
   let onScreenshotsTapped: () -> Void
   let onClassifyTapped: () -> Void
+  let onCreateAlbumTapped: () -> Void
+  let onAddToAlbumTapped: () -> Void
+  let onFavoriteTapped: () -> Void
+  let onRemovePreviewTapped: () -> Void
+  let onHidePreviewTapped: () -> Void
+  let onDeletePreviewTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -944,6 +1039,33 @@ private struct PhotosSection: View {
           .buttonStyle(.bordered)
         Button("Classify", action: onClassifyTapped)
           .buttonStyle(.bordered)
+      }
+
+      TextField("Album title", text: $albumTitle)
+        .textFieldStyle(.roundedBorder)
+
+      HStack {
+        Button("Album", action: onCreateAlbumTapped)
+          .buttonStyle(.bordered)
+        Button("Add", action: onAddToAlbumTapped)
+          .buttonStyle(.bordered)
+        Button("Favorite", action: onFavoriteTapped)
+          .buttonStyle(.bordered)
+      }
+
+      HStack {
+        Button("Remove", action: onRemovePreviewTapped)
+          .buttonStyle(.bordered)
+        Button("Hide", action: onHidePreviewTapped)
+          .buttonStyle(.bordered)
+        Button("Delete", action: onDeletePreviewTapped)
+          .buttonStyle(.bordered)
+      }
+
+      if !preview.isEmpty {
+        Text(preview)
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
 
       ForEach(assets) { asset in
