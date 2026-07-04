@@ -17,6 +17,10 @@ struct ContentView: View {
   @State private var readFileText = ""
   @State private var contextBundleMarkdown = ""
   @State private var pendingDeletePreview: FileDeletePreview?
+  @State private var localIndex = LocalIndex(chunks: [], skippedFiles: [])
+  @State private var indexQuery = ""
+  @State private var indexResults: [IndexedChunk] = []
+  @State private var indexBundleMarkdown = ""
   @State private var ocrText = ""
   @State private var photoPermissionStatus = "Not Checked"
   @State private var contactPermissionStatus = "Not Checked"
@@ -51,6 +55,14 @@ struct ContentView: View {
               onDeletePreviewTapped: previewDelete,
               onConfirmDeleteTapped: confirmDelete,
               onBundleTapped: buildContextBundle)
+            IndexSection(
+              index: localIndex,
+              query: $indexQuery,
+              results: indexResults,
+              bundleMarkdown: indexBundleMarkdown,
+              onRebuildTapped: rebuildIndex,
+              onSearchTapped: searchIndex,
+              onExportTapped: exportIndexBundle)
             VisionSection(
               ocrText: ocrText,
               onOCRImageTapped: { isImportingOCRImage = true })
@@ -236,6 +248,47 @@ struct ContentView: View {
       auditLog.record(
         toolName: "files.context_bundle", summary: error.localizedDescription, status: .failed)
     }
+  }
+
+  private func rebuildIndex() {
+    do {
+      localIndex = try LocalIndexService(rootDirectory: importsDirectory).rebuild()
+      indexResults = []
+      indexBundleMarkdown = ""
+      auditLog.record(
+        toolName: "index.rebuild",
+        summary: "\(localIndex.chunks.count) chunks, \(localIndex.skippedFiles.count) skipped",
+        status: .succeeded)
+    } catch {
+      localIndex = LocalIndex(chunks: [], skippedFiles: [])
+      indexResults = []
+      indexBundleMarkdown = ""
+      auditLog.record(
+        toolName: "index.rebuild", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func searchIndex() {
+    do {
+      indexResults = try localIndex.search(query: indexQuery)
+      indexBundleMarkdown = ""
+      auditLog.record(
+        toolName: "index.search", summary: "\(indexResults.count) chunks", status: .succeeded)
+    } catch {
+      indexResults = []
+      indexBundleMarkdown = ""
+      auditLog.record(
+        toolName: "index.search", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func exportIndexBundle() {
+    indexBundleMarkdown = localIndex.exportContextBundle(
+      title: indexQuery.isEmpty ? "Indexed Context" : indexQuery, chunks: indexResults)
+    auditLog.record(
+      toolName: "index.export_context_bundle",
+      summary: "\(indexResults.count) chunks",
+      status: .succeeded)
   }
 
   private func handleOCRImageImport(_ result: Result<[URL], Error>) {
@@ -484,6 +537,71 @@ private struct FileImportSection: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .background(Color.secondary.opacity(0.08))
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      }
+    }
+  }
+}
+
+private struct IndexSection: View {
+  let index: LocalIndex
+  @Binding var query: String
+  let results: [IndexedChunk]
+  let bundleMarkdown: String
+  let onRebuildTapped: () -> Void
+  let onSearchTapped: () -> Void
+  let onExportTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Local Index")
+        .font(.headline)
+
+      HStack {
+        Button("Rebuild Index", action: onRebuildTapped)
+          .buttonStyle(.bordered)
+        Text("\(index.chunks.count) chunks")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      HStack {
+        TextField("Search index chunks", text: $query)
+          .textFieldStyle(.roundedBorder)
+        Button("Search", action: onSearchTapped)
+          .buttonStyle(.bordered)
+          .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+      }
+
+      ForEach(results) { chunk in
+        VStack(alignment: .leading, spacing: 3) {
+          Text("\(chunk.filename) #\(chunk.number)")
+            .font(.caption.weight(.semibold))
+          Text(chunk.text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(3)
+        }
+      }
+
+      if !results.isEmpty {
+        Button("Export Indexed Context", action: onExportTapped)
+          .buttonStyle(.bordered)
+      }
+
+      if !bundleMarkdown.isEmpty {
+        Text(bundleMarkdown)
+          .font(.caption.monospaced())
+          .lineLimit(8)
+          .padding(8)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.secondary.opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      }
+
+      if !index.skippedFiles.isEmpty {
+        Text("\(index.skippedFiles.count) non-text file skipped")
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
     }
   }

@@ -21,6 +21,7 @@
 		100000000000000000000029 /* FileReadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002A /* FileReadService.swift */; };
 		10000000000000000000002B /* FileSourceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002C /* FileSourceService.swift */; };
 		10000000000000000000002D /* FileOperationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002E /* FileOperationService.swift */; };
+		100000000000000000000090 /* LocalIndexService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000091 /* LocalIndexService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,7 @@
 		10000000000000000000002A /* FileReadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileReadService.swift; sourceTree = "<group>"; };
 		100000000000000000000017 /* FileSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchService.swift; sourceTree = "<group>"; };
 		10000000000000000000002C /* FileSourceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSourceService.swift; sourceTree = "<group>"; };
+		100000000000000000000091 /* LocalIndexService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalIndexService.swift; sourceTree = "<group>"; };
 		100000000000000000000018 /* ContextBundleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextBundleService.swift; sourceTree = "<group>"; };
 		100000000000000000000019 /* OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRService.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* PhotoPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPermissionService.swift; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 				10000000000000000000002A /* FileReadService.swift */,
 				100000000000000000000017 /* FileSearchService.swift */,
 				10000000000000000000002C /* FileSourceService.swift */,
+				100000000000000000000091 /* LocalIndexService.swift */,
 				100000000000000000000019 /* OCRService.swift */,
 				100000000000000000000024 /* PhotoPermissionService.swift */,
 				100000000000000000000014 /* ToolRegistry.swift */,
@@ -179,6 +182,7 @@
 				100000000000000000000029 /* FileReadService.swift in Sources */,
 				100000000000000000000006 /* FileSearchService.swift in Sources */,
 				10000000000000000000002B /* FileSourceService.swift in Sources */,
+				100000000000000000000090 /* LocalIndexService.swift in Sources */,
 				100000000000000000000008 /* OCRService.swift in Sources */,
 				100000000000000000000009 /* PhotoPermissionService.swift in Sources */,
 				100000000000000000000004 /* ToolRegistry.swift in Sources */,

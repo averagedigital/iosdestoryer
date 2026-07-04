@@ -13,6 +13,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `files.read` UTF-8 reader for app-managed imported files.
 - `files.search` lexical search over imported UTF-8 files, with skipped non-text files surfaced.
 - `files.context_bundle` local Markdown bundle builder for matched imported files.
+- `index.rebuild`, `index.search`, `index.get_chunks`, and `index.export_context_bundle` build a local chunk index from app-managed UTF-8 imports.
 - `vision.ocr_image` OCR over user-picked image files through Apple's Vision framework.
 - `photos.permission_status` inspectable PhotoKit authorization status without reading assets.
 - `contacts.permission_status` inspectable Contacts authorization status without reading contacts.

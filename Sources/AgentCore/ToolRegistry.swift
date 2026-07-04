@@ -26,6 +26,13 @@ public struct ToolRegistry: Sendable {
       AgentTool(name: "files.extract_text", domain: .files, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.search", domain: .index, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.context_bundle", domain: .index, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "files.index_folder", domain: .index, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "index.add_source", domain: .index, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "index.rebuild", domain: .index, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "index.search", domain: .index, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "index.get_chunks", domain: .index, appleFrameworks: ["Foundation"]),
+      AgentTool(
+        name: "index.export_context_bundle", domain: .index, appleFrameworks: ["Foundation"]),
       AgentTool(
         name: "files.delete_with_preview", domain: .files, appleFrameworks: ["Foundation"],
         isDestructive: true),
