@@ -209,6 +209,7 @@ struct ContentView: View {
               durationSeconds: $audioRecordSeconds,
               recording: latestRecording,
               transcript: speechTranscript,
+              onStatusTapped: checkAudioSpeechPermissions,
               onPermissionTapped: requestAudioSpeechPermissions,
               onRecordTapped: recordAudio,
               onTranscribeTapped: transcribeLatestRecording)
@@ -1430,22 +1431,37 @@ struct ContentView: View {
     }
   }
 
+  private func checkAudioSpeechPermissions() {
+    Task {
+      do {
+        let permissions = try await AudioSpeechService().permissionStatus()
+        audioPermissionStatus =
+          "Microphone \(permissions.microphoneStatus.rawValue), speech \(permissions.speechStatus.rawValue)"
+        auditLog.record(
+          toolName: "audio.permission_status", summary: audioPermissionStatus,
+          status: .succeeded)
+      } catch {
+        audioPermissionStatus = error.localizedDescription
+        auditLog.record(
+          toolName: "audio.permission_status", summary: audioPermissionStatus, status: .failed)
+      }
+    }
+  }
+
   private func requestAudioSpeechPermissions() {
     Task {
       do {
         let permissions = try await AudioSpeechService().requestPermissions()
         audioPermissionStatus =
-          permissions.microphoneGranted
-          ? "Microphone granted, speech \(permissions.speechStatus.rawValue)"
-          : "Microphone denied, speech \(permissions.speechStatus.rawValue)"
+          "Microphone \(permissions.microphoneStatus.rawValue), speech \(permissions.speechStatus.rawValue)"
         auditLog.record(
-          toolName: "audio.permission_status", summary: audioPermissionStatus,
+          toolName: "audio.permission", summary: audioPermissionStatus,
           status: permissions.microphoneGranted && permissions.speechStatus == .authorized
             ? .succeeded : .failed)
       } catch {
         audioPermissionStatus = error.localizedDescription
         auditLog.record(
-          toolName: "audio.permission_status", summary: audioPermissionStatus, status: .failed)
+          toolName: "audio.permission", summary: audioPermissionStatus, status: .failed)
       }
     }
   }
@@ -2677,6 +2693,7 @@ private struct AudioSpeechSection: View {
   @Binding var durationSeconds: Double
   let recording: AudioRecording?
   let transcript: String
+  let onStatusTapped: () -> Void
   let onPermissionTapped: () -> Void
   let onRecordTapped: () -> Void
   let onTranscribeTapped: () -> Void
@@ -2687,7 +2704,9 @@ private struct AudioSpeechSection: View {
         .font(.headline)
 
       HStack {
-        Button("Permission", action: onPermissionTapped)
+        Button("Status", action: onStatusTapped)
+          .buttonStyle(.bordered)
+        Button("Request", action: onPermissionTapped)
           .buttonStyle(.bordered)
         Text(permissionStatus)
           .font(.caption)

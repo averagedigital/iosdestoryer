@@ -3,6 +3,15 @@ import XCTest
 @testable import AgentCore
 
 final class AudioSpeechServiceTests: XCTestCase {
+  func testReadsInspectablePermissionsWithoutRequestThroughProvider() async throws {
+    let service = AudioSpeechService(provider: StubAudioSpeechProvider())
+
+    let permissions = try await service.permissionStatus()
+
+    XCTAssertEqual(permissions.microphoneStatus, .granted)
+    XCTAssertEqual(permissions.speechStatus, .authorized)
+  }
+
   func testRequestsInspectablePermissionsThroughProvider() async throws {
     let service = AudioSpeechService(provider: StubAudioSpeechProvider())
 
@@ -62,6 +71,10 @@ final class AudioSpeechServiceTests: XCTestCase {
 }
 
 private struct StubAudioSpeechProvider: AudioSpeechProviding {
+  func permissionStatus() async throws -> AudioSpeechPermissions {
+    AudioSpeechPermissions(microphoneStatus: .granted, speechStatus: .authorized)
+  }
+
   func requestPermissions() async throws -> AudioSpeechPermissions {
     AudioSpeechPermissions(microphoneGranted: true, speechStatus: .authorized)
   }

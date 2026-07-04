@@ -137,6 +137,11 @@ public struct ToolRegistry: Sendable {
       AgentTool(
         name: "shortcuts.run_user_configured_shortcut", domain: .appIntents,
         appleFrameworks: ["AppIntents"]),
+      AgentTool(
+        name: "audio.permission_status", domain: .audio,
+        appleFrameworks: ["AVFoundation", "Speech"]),
+      AgentTool(
+        name: "audio.permission", domain: .audio, appleFrameworks: ["AVFoundation", "Speech"]),
       AgentTool(name: "audio.record", domain: .audio, appleFrameworks: ["AVFoundation"]),
       AgentTool(name: "speech.transcribe", domain: .audio, appleFrameworks: ["Speech"]),
       AgentTool(

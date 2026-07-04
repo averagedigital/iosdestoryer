@@ -74,6 +74,8 @@ final class ToolRegistryTests: XCTestCase {
       "app_intents.list_supported_actions",
       "app_intents.invoke_own_action",
       "shortcuts.run_user_configured_shortcut",
+      "audio.permission_status",
+      "audio.permission",
       "audio.record",
       "speech.transcribe",
       "local_model.summarize_if_available",
@@ -136,6 +138,8 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "app_intents.list_supported_actions"))
     XCTAssertNotNil(registry.tool(named: "app_intents.invoke_own_action"))
     XCTAssertNotNil(registry.tool(named: "shortcuts.run_user_configured_shortcut"))
+    XCTAssertNotNil(registry.tool(named: "audio.permission_status"))
+    XCTAssertNotNil(registry.tool(named: "audio.permission"))
     XCTAssertNotNil(registry.tool(named: "audio.record"))
     XCTAssertNotNil(registry.tool(named: "speech.transcribe"))
     XCTAssertNotNil(registry.tool(named: "local_model.summarize_if_available"))

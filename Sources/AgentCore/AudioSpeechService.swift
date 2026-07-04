@@ -12,6 +12,10 @@ public struct AudioSpeechService {
     self.provider = provider
   }
 
+  public func permissionStatus() async throws -> AudioSpeechPermissions {
+    try await provider.permissionStatus()
+  }
+
   public func requestPermissions() async throws -> AudioSpeechPermissions {
     try await provider.requestPermissions()
   }
@@ -32,19 +36,37 @@ public struct AudioSpeechService {
 }
 
 public protocol AudioSpeechProviding {
+  func permissionStatus() async throws -> AudioSpeechPermissions
   func requestPermissions() async throws -> AudioSpeechPermissions
   func record(_ draft: AudioRecordDraft) async throws -> AudioRecording
   func transcribe(_ recording: AudioRecording) async throws -> SpeechTranscript
 }
 
 public struct AudioSpeechPermissions: Equatable, Sendable {
-  public let microphoneGranted: Bool
+  public let microphoneStatus: MicrophonePermissionStatus
   public let speechStatus: SpeechPermissionStatus
 
+  public var microphoneGranted: Bool {
+    microphoneStatus == .granted
+  }
+
   public init(microphoneGranted: Bool, speechStatus: SpeechPermissionStatus) {
-    self.microphoneGranted = microphoneGranted
+    self.microphoneStatus = microphoneGranted ? .granted : .denied
     self.speechStatus = speechStatus
   }
+
+  public init(microphoneStatus: MicrophonePermissionStatus, speechStatus: SpeechPermissionStatus) {
+    self.microphoneStatus = microphoneStatus
+    self.speechStatus = speechStatus
+  }
+}
+
+public enum MicrophonePermissionStatus: String, Equatable, Sendable {
+  case notDetermined
+  case denied
+  case granted
+  case unknown
+  case unavailable
 }
 
 public enum SpeechPermissionStatus: String, Equatable, Sendable {
@@ -106,6 +128,12 @@ public enum AudioSpeechServiceError: Error, Equatable {
     private var recorder: AVAudioRecorder?
 
     public init() {}
+
+    public func permissionStatus() async throws -> AudioSpeechPermissions {
+      AudioSpeechPermissions(
+        microphoneStatus: MicrophonePermissionStatus(AVAudioApplication.shared.recordPermission),
+        speechStatus: SpeechPermissionStatus(SFSpeechRecognizer.authorizationStatus()))
+    }
 
     public func requestPermissions() async throws -> AudioSpeechPermissions {
       let microphoneGranted = await requestMicrophonePermission()
@@ -202,6 +230,21 @@ public enum AudioSpeechServiceError: Error, Equatable {
     }
   }
 
+  extension MicrophonePermissionStatus {
+    fileprivate init(_ status: AVAudioApplication.recordPermission) {
+      switch status {
+      case .undetermined:
+        self = .notDetermined
+      case .denied:
+        self = .denied
+      case .granted:
+        self = .granted
+      @unknown default:
+        self = .unknown
+      }
+    }
+  }
+
   extension SpeechPermissionStatus {
     fileprivate init(_ status: SFSpeechRecognizerAuthorizationStatus) {
       switch status {
@@ -221,6 +264,10 @@ public enum AudioSpeechServiceError: Error, Equatable {
 #else
   public struct SystemAudioSpeechProvider: AudioSpeechProviding {
     public init() {}
+
+    public func permissionStatus() async throws -> AudioSpeechPermissions {
+      AudioSpeechPermissions(microphoneStatus: .unavailable, speechStatus: .unavailable)
+    }
 
     public func requestPermissions() async throws -> AudioSpeechPermissions {
       AudioSpeechPermissions(microphoneGranted: false, speechStatus: .unavailable)
