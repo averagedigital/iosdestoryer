@@ -66,9 +66,18 @@ public struct ToolRegistry: Sendable {
       AgentTool(name: "calendar.search_events", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "calendar.create_event", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(
+        name: "calendar.update_event_with_preview", domain: .calendar,
+        appleFrameworks: ["EventKit"]),
+      AgentTool(
+        name: "calendar.delete_event_with_preview", domain: .calendar,
+        appleFrameworks: ["EventKit"], isDestructive: true),
+      AgentTool(
         name: "reminders.permission_status", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "reminders.search", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "reminders.create", domain: .calendar, appleFrameworks: ["EventKit"]),
+      AgentTool(
+        name: "reminders.update_with_preview", domain: .calendar, appleFrameworks: ["EventKit"]),
+      AgentTool(name: "reminders.complete", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "vision.ocr_image", domain: .vision, appleFrameworks: ["Vision"]),
       AgentTool(
         name: "app_intents.list_supported_actions", domain: .appIntents,

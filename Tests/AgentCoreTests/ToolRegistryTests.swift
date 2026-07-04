@@ -29,8 +29,12 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "contacts.merge_preview"))
     XCTAssertNotNil(registry.tool(named: "calendar.search_events"))
     XCTAssertNotNil(registry.tool(named: "calendar.create_event"))
+    XCTAssertNotNil(registry.tool(named: "calendar.update_event_with_preview"))
+    XCTAssertNotNil(registry.tool(named: "calendar.delete_event_with_preview"))
     XCTAssertNotNil(registry.tool(named: "reminders.search"))
     XCTAssertNotNil(registry.tool(named: "reminders.create"))
+    XCTAssertNotNil(registry.tool(named: "reminders.update_with_preview"))
+    XCTAssertNotNil(registry.tool(named: "reminders.complete"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }

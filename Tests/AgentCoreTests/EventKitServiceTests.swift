@@ -27,6 +27,23 @@ final class EventKitServiceTests: XCTestCase {
     XCTAssertEqual(event.notes, "Discuss contract")
   }
 
+  func testBuildsCalendarUpdateAndDeletePreviews() {
+    let service = EventKitService(provider: StubEventKitProvider())
+    let event = CalendarEventSummary(
+      id: "event-1", title: "Old", notes: "", startDate: .distantPast, endDate: .distantFuture)
+    let draft = CalendarEventDraft(
+      title: "New", notes: "", startDate: .distantPast, endDate: .distantFuture)
+
+    let update = service.updateEventPreview(event: event, draft: draft)
+    let delete = service.deleteEventPreview(event: event)
+
+    XCTAssertEqual(update.action, .updateEvent)
+    XCTAssertEqual(update.itemID, "event-1")
+    XCTAssertTrue(update.summary.contains("Update"))
+    XCTAssertEqual(delete.action, .deleteEvent)
+    XCTAssertEqual(delete.itemID, "event-1")
+  }
+
   func testSearchRemindersFiltersByTitleAndNotes() async throws {
     let service = EventKitService(provider: StubEventKitProvider())
 
@@ -45,6 +62,20 @@ final class EventKitServiceTests: XCTestCase {
 
     XCTAssertEqual(reminder.title, "Review")
     XCTAssertFalse(reminder.isCompleted)
+  }
+
+  func testBuildsReminderUpdatePreviewAndCompletesReminder() async throws {
+    let service = EventKitService(provider: StubEventKitProvider())
+    let reminder = ReminderSummary(
+      id: "reminder-1", title: "Old", notes: "", isCompleted: false, dueDate: nil)
+    let draft = ReminderDraft(title: "New", notes: "", dueDate: nil)
+
+    let preview = service.updateReminderPreview(reminder: reminder, draft: draft)
+    let completed = try await service.completeReminder(id: reminder.id)
+
+    XCTAssertEqual(preview.action, .updateReminder)
+    XCTAssertEqual(preview.itemID, "reminder-1")
+    XCTAssertTrue(completed.isCompleted)
   }
 }
 
@@ -80,5 +111,10 @@ private struct StubEventKitProvider: EventKitProviding {
     ReminderSummary(
       id: "created-reminder", title: draft.title, notes: draft.notes, isCompleted: false,
       dueDate: draft.dueDate)
+  }
+
+  func completeReminder(id: String) async throws -> ReminderSummary {
+    ReminderSummary(
+      id: id, title: "Contract follow-up", notes: "", isCompleted: true, dueDate: nil)
   }
 }
