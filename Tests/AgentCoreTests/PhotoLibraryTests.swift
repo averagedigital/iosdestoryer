@@ -62,6 +62,21 @@ final class PhotoLibraryTests: XCTestCase {
     XCTAssertEqual(delete.action, .delete)
     XCTAssertEqual(delete.assetIDs, ["doc"])
   }
+
+  func testAppliesPhotoMutationPreviewThroughProvider() async throws {
+    let provider = StubPhotoAssetProvider(assets: sampleAssets)
+    let service = PhotoLibraryService(provider: provider)
+
+    _ = try await service.apply(
+      service.removeFromAlbumPreview(assetIDs: ["doc"], albumTitle: "Docs"))
+    _ = try await service.apply(service.hidePreview(assetIDs: ["screen"]))
+    _ = try await service.apply(service.deletePreview(assetIDs: ["square"]))
+
+    XCTAssertEqual(provider.removed, ["doc"])
+    XCTAssertEqual(provider.removedAlbum, "Docs")
+    XCTAssertEqual(provider.hidden, ["screen"])
+    XCTAssertEqual(provider.deleted, ["square"])
+  }
 }
 
 private let sampleAssets = [
@@ -76,8 +91,16 @@ private let sampleAssets = [
     isScreenshot: false, isFavorite: false, isHidden: false),
 ]
 
-private struct StubPhotoAssetProvider: PhotoAssetProviding {
+private final class StubPhotoAssetProvider: PhotoAssetProviding {
   let assets: [PhotoAssetSummary]
+  var removed: [String] = []
+  var removedAlbum = ""
+  var hidden: [String] = []
+  var deleted: [String] = []
+
+  init(assets: [PhotoAssetSummary]) {
+    self.assets = assets
+  }
 
   func fetchAssets(limit: Int) -> [PhotoAssetSummary] {
     Array(assets.prefix(limit))
@@ -105,5 +128,18 @@ private struct StubPhotoAssetProvider: PhotoAssetProviding {
       isScreenshot: asset.isScreenshot,
       isFavorite: true,
       isHidden: asset.isHidden)
+  }
+
+  func removeAssets(_ assetIDs: [String], fromAlbumNamed albumTitle: String) async throws {
+    removed = assetIDs
+    removedAlbum = albumTitle
+  }
+
+  func hideAssets(_ assetIDs: [String]) async throws {
+    hidden = assetIDs
+  }
+
+  func deleteAssets(_ assetIDs: [String]) async throws {
+    deleted = assetIDs
   }
 }

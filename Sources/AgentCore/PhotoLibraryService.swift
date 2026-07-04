@@ -58,6 +58,7 @@ public struct PhotoLibraryService {
     PhotoChangePreview(
       action: .removeFromAlbum,
       assetIDs: assetIDs,
+      albumTitle: albumTitle,
       summary: "Remove \(assetIDs.count) assets from \(albumTitle)")
   }
 
@@ -74,6 +75,18 @@ public struct PhotoLibraryService {
       assetIDs: assetIDs,
       summary: "Delete \(assetIDs.count) assets")
   }
+
+  public func apply(_ preview: PhotoChangePreview) async throws -> PhotoChangePreview {
+    switch preview.action {
+    case .removeFromAlbum:
+      try await provider.removeAssets(preview.assetIDs, fromAlbumNamed: preview.albumTitle ?? "")
+    case .hide:
+      try await provider.hideAssets(preview.assetIDs)
+    case .delete:
+      try await provider.deleteAssets(preview.assetIDs)
+    }
+    return preview
+  }
 }
 
 public protocol PhotoAssetProviding {
@@ -82,6 +95,9 @@ public protocol PhotoAssetProviding {
   func addAssets(_ assetIDs: [String], toAlbumNamed albumTitle: String) async throws
     -> PhotoAlbumMutationResult
   func favoriteAsset(id: String) async throws -> PhotoAssetSummary
+  func removeAssets(_ assetIDs: [String], fromAlbumNamed albumTitle: String) async throws
+  func hideAssets(_ assetIDs: [String]) async throws
+  func deleteAssets(_ assetIDs: [String]) async throws
 }
 
 public struct PhotoAlbumSummary: Equatable, Identifiable, Sendable {
@@ -107,11 +123,15 @@ public struct PhotoAlbumMutationResult: Equatable, Sendable {
 public struct PhotoChangePreview: Equatable, Sendable {
   public let action: PhotoChangeAction
   public let assetIDs: [String]
+  public let albumTitle: String?
   public let summary: String
 
-  public init(action: PhotoChangeAction, assetIDs: [String], summary: String) {
+  public init(
+    action: PhotoChangeAction, assetIDs: [String], albumTitle: String? = nil, summary: String
+  ) {
     self.action = action
     self.assetIDs = assetIDs
+    self.albumTitle = albumTitle
     self.summary = summary
   }
 }
@@ -126,6 +146,7 @@ public enum PhotoLibraryError: Error, Equatable {
   case emptyAlbumTitle
   case assetNotFound(String)
   case albumNotFound(String)
+  case photosUnavailable
 }
 
 public struct PhotoAssetClassifier: Sendable {
@@ -265,6 +286,44 @@ public enum PhotoCandidateLabel: String, Equatable, Sendable {
         isHidden: asset.isHidden)
     }
 
+    public func removeAssets(_ assetIDs: [String], fromAlbumNamed albumTitle: String) async throws {
+      let assets = PHAsset.fetchAssets(withLocalIdentifiers: assetIDs, options: nil)
+      guard assets.count == assetIDs.count else {
+        throw PhotoLibraryError.assetNotFound(assetIDs.first ?? "")
+      }
+      guard let album = album(named: albumTitle) else {
+        throw PhotoLibraryError.albumNotFound(albumTitle)
+      }
+
+      try await performChanges {
+        PHAssetCollectionChangeRequest(for: album)?.removeAssets(assets)
+      }
+    }
+
+    public func hideAssets(_ assetIDs: [String]) async throws {
+      let assets = PHAsset.fetchAssets(withLocalIdentifiers: assetIDs, options: nil)
+      guard assets.count == assetIDs.count else {
+        throw PhotoLibraryError.assetNotFound(assetIDs.first ?? "")
+      }
+
+      try await performChanges {
+        assets.enumerateObjects { asset, _, _ in
+          PHAssetChangeRequest(for: asset).isHidden = true
+        }
+      }
+    }
+
+    public func deleteAssets(_ assetIDs: [String]) async throws {
+      let assets = PHAsset.fetchAssets(withLocalIdentifiers: assetIDs, options: nil)
+      guard assets.count == assetIDs.count else {
+        throw PhotoLibraryError.assetNotFound(assetIDs.first ?? "")
+      }
+
+      try await performChanges {
+        PHAssetChangeRequest.deleteAssets(assets)
+      }
+    }
+
     private func album(named title: String) -> PHAssetCollection? {
       let options = PHFetchOptions()
       options.predicate = NSPredicate(format: "title = %@", title)
@@ -307,6 +366,18 @@ public enum PhotoCandidateLabel: String, Equatable, Sendable {
 
     public func favoriteAsset(id: String) async throws -> PhotoAssetSummary {
       throw PhotoLibraryError.assetNotFound(id)
+    }
+
+    public func removeAssets(_ assetIDs: [String], fromAlbumNamed albumTitle: String) async throws {
+      throw PhotoLibraryError.photosUnavailable
+    }
+
+    public func hideAssets(_ assetIDs: [String]) async throws {
+      throw PhotoLibraryError.photosUnavailable
+    }
+
+    public func deleteAssets(_ assetIDs: [String]) async throws {
+      throw PhotoLibraryError.photosUnavailable
     }
   }
 #endif

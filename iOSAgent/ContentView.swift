@@ -38,6 +38,7 @@ struct ContentView: View {
   @State private var photoAssets: [PhotoAssetSummary] = []
   @State private var photoClassifications: [PhotoClassificationResult] = []
   @State private var photoPreview = ""
+  @State private var pendingPhotoPreview: PhotoChangePreview?
   @State private var contactPermissionStatus = "Not Checked"
   @State private var contactQuery = ""
   @State private var contactGivenName = "New"
@@ -129,6 +130,7 @@ struct ContentView: View {
               assets: photoAssets,
               classifications: photoClassifications,
               preview: photoPreview,
+              hasPendingPreview: pendingPhotoPreview != nil,
               onCheckTapped: checkPhotoPermission,
               onListTapped: listPhotoAssets,
               onScreenshotsTapped: findScreenshots,
@@ -138,7 +140,8 @@ struct ContentView: View {
               onFavoriteTapped: favoriteFirstPhoto,
               onRemovePreviewTapped: previewPhotoRemoveFromAlbum,
               onHidePreviewTapped: previewPhotoHide,
-              onDeletePreviewTapped: previewPhotoDelete)
+              onDeletePreviewTapped: previewPhotoDelete,
+              onConfirmPreviewTapped: confirmPhotoPreview)
             ContactsSection(
               status: contactPermissionStatus,
               query: $contactQuery,
@@ -665,6 +668,7 @@ struct ContentView: View {
     photoAssets = PhotoLibraryService().listAssets(limit: 20)
     photoClassifications = []
     photoPreview = ""
+    pendingPhotoPreview = nil
     auditLog.record(
       toolName: "photos.list_assets", summary: "\(photoAssets.count) assets", status: .succeeded)
   }
@@ -673,6 +677,7 @@ struct ContentView: View {
     photoAssets = PhotoLibraryService().findScreenshots(limit: 50)
     photoClassifications = []
     photoPreview = ""
+    pendingPhotoPreview = nil
     auditLog.record(
       toolName: "photos.find_screenshots", summary: "\(photoAssets.count) screenshots",
       status: .succeeded)
@@ -682,6 +687,7 @@ struct ContentView: View {
     photoClassifications = PhotoLibraryService().classifyCandidates(limit: 20)
     photoAssets = photoClassifications.map(\.asset)
     photoPreview = ""
+    pendingPhotoPreview = nil
     auditLog.record(
       toolName: "photos.classify_candidates",
       summary: "\(photoClassifications.count) assets",
@@ -693,6 +699,7 @@ struct ContentView: View {
       do {
         let album = try await PhotoLibraryService().createAlbum(title: photoAlbumTitle)
         photoPreview = ""
+        pendingPhotoPreview = nil
         auditLog.record(toolName: "photos.create_album", summary: album.title, status: .succeeded)
       } catch {
         auditLog.record(
@@ -708,6 +715,7 @@ struct ContentView: View {
         let result = try await PhotoLibraryService().addToAlbum(
           assetIDs: [asset.id], albumTitle: photoAlbumTitle)
         photoPreview = ""
+        pendingPhotoPreview = nil
         auditLog.record(
           toolName: "photos.add_to_album", summary: "\(result.assetIDs.count) assets",
           status: .succeeded)
@@ -725,6 +733,7 @@ struct ContentView: View {
         let favorite = try await PhotoLibraryService().favorite(assetID: asset.id)
         photoAssets = [favorite] + Array(photoAssets.dropFirst())
         photoPreview = ""
+        pendingPhotoPreview = nil
         auditLog.record(toolName: "photos.favorite", summary: favorite.id, status: .succeeded)
       } catch {
         auditLog.record(
@@ -736,6 +745,7 @@ struct ContentView: View {
   private func previewPhotoRemoveFromAlbum() {
     let preview = PhotoLibraryService().removeFromAlbumPreview(
       assetIDs: selectedPhotoIDs, albumTitle: photoAlbumTitle)
+    pendingPhotoPreview = preview
     photoPreview = preview.summary
     auditLog.record(
       toolName: "photos.remove_from_album_with_preview", summary: preview.summary,
@@ -744,6 +754,7 @@ struct ContentView: View {
 
   private func previewPhotoHide() {
     let preview = PhotoLibraryService().hidePreview(assetIDs: selectedPhotoIDs)
+    pendingPhotoPreview = preview
     photoPreview = preview.summary
     auditLog.record(
       toolName: "photos.hide_with_preview", summary: preview.summary,
@@ -752,10 +763,44 @@ struct ContentView: View {
 
   private func previewPhotoDelete() {
     let preview = PhotoLibraryService().deletePreview(assetIDs: selectedPhotoIDs)
+    pendingPhotoPreview = preview
     photoPreview = preview.summary
     auditLog.record(
       toolName: "photos.delete_with_preview", summary: preview.summary,
       status: .needsConfirmation)
+  }
+
+  private func confirmPhotoPreview() {
+    guard let preview = pendingPhotoPreview else { return }
+    Task {
+      do {
+        let applied = try await PhotoLibraryService().apply(preview)
+        pendingPhotoPreview = nil
+        photoPreview = "Confirmed: \(applied.summary)"
+        if applied.action == .delete {
+          let ids = Set(applied.assetIDs)
+          photoAssets.removeAll { ids.contains($0.id) }
+        }
+        auditLog.record(
+          toolName: photoToolName(for: applied.action), summary: applied.summary,
+          status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: photoToolName(for: preview.action), summary: error.localizedDescription,
+          status: .failed)
+      }
+    }
+  }
+
+  private func photoToolName(for action: PhotoChangeAction) -> String {
+    switch action {
+    case .removeFromAlbum:
+      "photos.remove_from_album_with_preview"
+    case .hide:
+      "photos.hide_with_preview"
+    case .delete:
+      "photos.delete_with_preview"
+    }
   }
 
   private func checkContactPermission() {
@@ -1705,6 +1750,7 @@ private struct PhotosSection: View {
   let assets: [PhotoAssetSummary]
   let classifications: [PhotoClassificationResult]
   let preview: String
+  let hasPendingPreview: Bool
   let onCheckTapped: () -> Void
   let onListTapped: () -> Void
   let onScreenshotsTapped: () -> Void
@@ -1715,6 +1761,7 @@ private struct PhotosSection: View {
   let onRemovePreviewTapped: () -> Void
   let onHidePreviewTapped: () -> Void
   let onDeletePreviewTapped: () -> Void
+  let onConfirmPreviewTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -1766,6 +1813,10 @@ private struct PhotosSection: View {
         Text(preview)
           .font(.caption)
           .foregroundStyle(.secondary)
+        if hasPendingPreview {
+          Button("Confirm", role: .destructive, action: onConfirmPreviewTapped)
+            .buttonStyle(.borderedProminent)
+        }
       }
 
       ForEach(assets) { asset in
