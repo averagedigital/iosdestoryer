@@ -9,10 +9,14 @@ struct ContentView: View {
   @State private var isImportingOCRImage = false
   @State private var importedFileName: String?
   @State private var allowedSources: [AllowedFileSource] = []
+  @State private var fileWriteName = "note.txt"
+  @State private var fileWriteText = ""
+  @State private var fileOperationStatus = ""
   @State private var fileSearchQuery = ""
   @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
   @State private var readFileText = ""
   @State private var contextBundleMarkdown = ""
+  @State private var pendingDeletePreview: FileDeletePreview?
   @State private var ocrText = ""
   @State private var photoPermissionStatus = "Not Checked"
   @State private var contactPermissionStatus = "Not Checked"
@@ -31,14 +35,21 @@ struct ContentView: View {
             FileImportSection(
               importedFileName: importedFileName,
               allowedSources: allowedSources,
+              fileWriteName: $fileWriteName,
+              fileWriteText: $fileWriteText,
+              fileOperationStatus: fileOperationStatus,
               searchQuery: $fileSearchQuery,
               searchReport: fileSearchReport,
               readFileText: readFileText,
               contextBundleMarkdown: contextBundleMarkdown,
+              pendingDeletePreview: pendingDeletePreview,
               onImportTapped: { isImportingFile = true },
               onSourcesTapped: listAllowedSources,
+              onWriteTapped: writeTextFile,
               onSearchTapped: searchImportedFiles,
               onReadTapped: readFile,
+              onDeletePreviewTapped: previewDelete,
+              onConfirmDeleteTapped: confirmDelete,
               onBundleTapped: buildContextBundle)
             VisionSection(
               ocrText: ocrText,
@@ -135,14 +146,29 @@ struct ContentView: View {
         query: fileSearchQuery)
       fileSearchReport = report
       readFileText = ""
+      pendingDeletePreview = nil
       auditLog.record(
         toolName: "files.search", summary: "\(report.matches.count) matches",
         status: .succeeded)
     } catch {
       fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
       readFileText = ""
+      pendingDeletePreview = nil
       auditLog.record(
         toolName: "files.search", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func writeTextFile() {
+    do {
+      let result = try FileOperationService(rootDirectory: importsDirectory)
+        .writeText(fileWriteText, to: fileWriteName)
+      importedFileName = result.filename
+      fileOperationStatus = "Created \(result.filename)"
+      auditLog.record(toolName: "files.write", summary: result.filename, status: .succeeded)
+    } catch {
+      fileOperationStatus = error.localizedDescription
+      auditLog.record(toolName: "files.write", summary: error.localizedDescription, status: .failed)
     }
   }
 
@@ -155,6 +181,43 @@ struct ContentView: View {
     } catch {
       readFileText = ""
       auditLog.record(toolName: "files.read", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func previewDelete(_ result: FileSearchResult) {
+    do {
+      let preview = try FileOperationService(rootDirectory: importsDirectory)
+        .deletePreview(for: relativePath(for: result.url))
+      pendingDeletePreview = preview
+      fileOperationStatus = "Preview delete \(preview.filename) (\(preview.byteCount) bytes)"
+      auditLog.record(
+        toolName: "files.delete_with_preview", summary: preview.filename,
+        status: .needsConfirmation)
+    } catch {
+      pendingDeletePreview = nil
+      fileOperationStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "files.delete_with_preview", summary: error.localizedDescription,
+        status: .failed)
+    }
+  }
+
+  private func confirmDelete() {
+    guard let preview = pendingDeletePreview else { return }
+    do {
+      try FileOperationService(rootDirectory: importsDirectory).delete(preview)
+      pendingDeletePreview = nil
+      fileSearchReport = FileSearchReport(
+        matches: fileSearchReport.matches.filter { $0.url != preview.url },
+        skippedFiles: fileSearchReport.skippedFiles)
+      fileOperationStatus = "Deleted \(preview.filename)"
+      auditLog.record(
+        toolName: "files.delete_with_preview", summary: preview.filename, status: .succeeded)
+    } catch {
+      fileOperationStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "files.delete_with_preview", summary: error.localizedDescription,
+        status: .failed)
     }
   }
 
@@ -237,6 +300,15 @@ struct ContentView: View {
   private var importsDirectory: URL {
     URL.documentsDirectory.appending(path: "Imports", directoryHint: .isDirectory)
   }
+
+  private func relativePath(for url: URL) throws -> String {
+    let rootPath = importsDirectory.standardizedFileURL.path
+    let path = url.standardizedFileURL.path
+    guard path.hasPrefix(rootPath + "/") else {
+      throw FileOperationError.pathEscapesRoot(url.lastPathComponent)
+    }
+    return String(path.dropFirst(rootPath.count + 1))
+  }
 }
 
 private struct ChatBubble: View {
@@ -288,14 +360,21 @@ private struct ToolSection: View {
 private struct FileImportSection: View {
   let importedFileName: String?
   let allowedSources: [AllowedFileSource]
+  @Binding var fileWriteName: String
+  @Binding var fileWriteText: String
+  let fileOperationStatus: String
   @Binding var searchQuery: String
   let searchReport: FileSearchReport
   let readFileText: String
   let contextBundleMarkdown: String
+  let pendingDeletePreview: FileDeletePreview?
   let onImportTapped: () -> Void
   let onSourcesTapped: () -> Void
+  let onWriteTapped: () -> Void
   let onSearchTapped: () -> Void
   let onReadTapped: (FileSearchResult) -> Void
+  let onDeletePreviewTapped: (FileSearchResult) -> Void
+  let onConfirmDeleteTapped: () -> Void
   let onBundleTapped: () -> Void
 
   var body: some View {
@@ -329,6 +408,21 @@ private struct FileImportSection: View {
           .foregroundStyle(.secondary)
       }
 
+      TextField("New UTF-8 filename", text: $fileWriteName)
+        .textFieldStyle(.roundedBorder)
+      TextField("Text to write", text: $fileWriteText, axis: .vertical)
+        .textFieldStyle(.roundedBorder)
+        .lineLimit(1...4)
+      Button("Write Text File", action: onWriteTapped)
+        .buttonStyle(.bordered)
+        .disabled(fileWriteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+      if !fileOperationStatus.isEmpty {
+        Text(fileOperationStatus)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
       HStack {
         TextField("Search imported files", text: $searchQuery)
           .textFieldStyle(.roundedBorder)
@@ -338,10 +432,27 @@ private struct FileImportSection: View {
       }
 
       ForEach(searchReport.matches) { result in
-        Button(result.filename) {
-          onReadTapped(result)
+        HStack {
+          Button(result.filename) {
+            onReadTapped(result)
+          }
+          .font(.caption)
+
+          Spacer()
+
+          Button("Preview Delete", role: .destructive) {
+            onDeletePreviewTapped(result)
+          }
+          .font(.caption)
         }
-        .font(.caption)
+      }
+
+      if let pendingDeletePreview {
+        Text("Delete preview: \(pendingDeletePreview.filename)")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        Button("Confirm Delete", role: .destructive, action: onConfirmDeleteTapped)
+          .buttonStyle(.bordered)
       }
 
       if !searchReport.skippedFiles.isEmpty {

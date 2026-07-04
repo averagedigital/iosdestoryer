@@ -7,6 +7,10 @@ final class ToolRegistryTests: XCTestCase {
     let registry = ToolRegistry.defaultRegistry()
 
     XCTAssertNotNil(registry.tool(named: "files.pick_file"))
+    XCTAssertNotNil(registry.tool(named: "files.write"))
+    XCTAssertNotNil(registry.tool(named: "files.copy"))
+    XCTAssertNotNil(registry.tool(named: "files.move"))
+    XCTAssertNotNil(registry.tool(named: "files.extract_text"))
     XCTAssertNotNil(registry.tool(named: "files.search"))
     XCTAssertNotNil(registry.tool(named: "photos.permission_status"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))

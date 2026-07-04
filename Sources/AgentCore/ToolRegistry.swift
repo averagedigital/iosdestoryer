@@ -20,6 +20,10 @@ public struct ToolRegistry: Sendable {
       AgentTool(
         name: "files.list_allowed_sources", domain: .files, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.read", domain: .files, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "files.write", domain: .files, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "files.copy", domain: .files, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "files.move", domain: .files, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "files.extract_text", domain: .files, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.search", domain: .index, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.context_bundle", domain: .index, appleFrameworks: ["Foundation"]),
       AgentTool(
