@@ -23,6 +23,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - `notify.schedule` and `notify.cancel` use UserNotifications after explicit permission.
 - `AgentShareExtension` receives shared text, URLs, images, and files through the iOS share sheet, then writes them into the shared App Group inbox for `share.list_inbox`.
+- Shared inbox items can be imported into app-managed Files and the local index from the Sources UI.
 - `app.open_url` and `app.open_deeplink` use `UIApplication.open` for explicit user-visible navigation only.
 - `app_intents.list_supported_actions` and `app_intents.invoke_own_action` expose this app's own supported action list; `OpenAgentWorkspaceIntent` registers an App Shortcut for opening the workspace.
 - `audio.record` and `speech.transcribe` use AVFoundation and Speech after explicit user action and permission; transcription requires on-device recognition.
@@ -73,4 +74,4 @@ Sources checked:
 - `Sources/AgentCore/`: testable agent contracts and local tool metadata.
 - `Tests/AgentCoreTests/`: narrow behavior tests.
 
-Next feature should be UI/privacy polish around imported sources and shared items: clearer local-only copy, per-item import-to-index action, and empty/error states.
+Next feature should be UI/privacy polish around imported sources and shared items: clearer empty/error states and local-only copy.

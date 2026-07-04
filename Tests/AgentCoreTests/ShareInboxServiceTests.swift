@@ -24,6 +24,19 @@ final class ShareInboxServiceTests: XCTestCase {
     XCTAssertEqual(try String(contentsOf: item.url, encoding: .utf8), "contract notes")
   }
 
+  func testSharedTextCanBeCopiedIntoImportsAndIndexed() throws {
+    let temp = try TemporaryDirectory()
+    let inbox = temp.url.appending(path: "ShareInbox", directoryHint: .isDirectory)
+    let imports = temp.url.appending(path: "Imports", directoryHint: .isDirectory)
+    let shared = try ShareInboxService(inboxDirectory: inbox).importText(
+      "water supply contract", preferredName: "water")
+
+    _ = try FileImportService(importsDirectory: imports).importPickedFile(from: shared.url)
+    let index = try LocalIndexService(rootDirectory: imports).rebuild()
+
+    XCTAssertEqual(try index.search(query: "supply").map(\.filename), ["water.txt"])
+  }
+
   func testImportUsesAvailableNameOnCollision() throws {
     let temp = try TemporaryDirectory()
     let service = ShareInboxService(inboxDirectory: temp.url)

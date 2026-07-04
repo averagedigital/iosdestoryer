@@ -101,7 +101,8 @@ struct ContentView: View {
             ShareInboxSection(
               items: sharedInboxItems,
               status: shareInboxStatus,
-              onRefreshTapped: refreshShareInbox)
+              onRefreshTapped: refreshShareInbox,
+              onImportTapped: importSharedInboxItem)
             IndexSection(
               index: localIndex,
               query: $indexQuery,
@@ -427,6 +428,28 @@ struct ContentView: View {
     } catch {
       shareInboxStatus = error.localizedDescription
       auditLog.record(toolName: "share.list_inbox", summary: shareInboxStatus, status: .failed)
+    }
+  }
+
+  private func importSharedInboxItem(_ item: SharedInboxItem) {
+    do {
+      let imported = try FileImportService(importsDirectory: importsDirectory)
+        .importPickedFile(from: item.url)
+      localIndex = try LocalIndexService(rootDirectory: importsDirectory).rebuild()
+      indexResults = []
+      indexBundleMarkdown = ""
+      importedFileName = imported.originalFilename
+      shareInboxStatus = "Imported \(imported.originalFilename); \(localIndex.chunks.count) chunks"
+      auditLog.record(
+        toolName: "share.import_\(item.kind.rawValue)",
+        summary: shareInboxStatus,
+        status: .succeeded)
+    } catch {
+      shareInboxStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "share.import_\(item.kind.rawValue)",
+        summary: error.localizedDescription,
+        status: .failed)
     }
   }
 
@@ -1159,11 +1182,16 @@ private struct ShareInboxSection: View {
   let items: [SharedInboxItem]
   let status: String
   let onRefreshTapped: () -> Void
+  let onImportTapped: (SharedInboxItem) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text("Share Inbox")
         .font(.headline)
+
+      Text("Local App Group inbox")
+        .font(.caption)
+        .foregroundStyle(.secondary)
 
       Button(action: onRefreshTapped) {
         Label("Refresh Shared Items", systemImage: "square.and.arrow.down")
@@ -1178,10 +1206,20 @@ private struct ShareInboxSection: View {
 
       ForEach(items) { item in
         HStack {
-          Text(item.kind.rawValue)
-            .font(.caption.monospaced())
-          Text(item.url.lastPathComponent)
-            .lineLimit(1)
+          VStack(alignment: .leading, spacing: 2) {
+            Text(item.kind.rawValue)
+              .font(.caption.monospaced())
+            Text(item.url.lastPathComponent)
+              .lineLimit(1)
+          }
+
+          Spacer()
+
+          Button(action: { onImportTapped(item) }) {
+            Label("Import to Files", systemImage: "tray.and.arrow.down")
+          }
+          .buttonStyle(.bordered)
+          .font(.caption)
         }
         .font(.caption)
       }
