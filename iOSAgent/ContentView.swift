@@ -118,12 +118,16 @@ struct ContentView: View {
               onExtractTapped: extractText,
               onDeletePreviewTapped: previewDelete,
               onConfirmDeleteTapped: confirmDelete,
-              onBundleTapped: buildContextBundle)
+              onBundleTapped: buildContextBundle
+            )
+            .agentPanel()
             ShareInboxSection(
               items: sharedInboxItems,
               status: shareInboxStatus,
               onRefreshTapped: refreshShareInbox,
-              onImportTapped: importSharedInboxItem)
+              onImportTapped: importSharedInboxItem
+            )
+            .agentPanel()
             VisionSection(
               ocrText: ocrText,
               barcodeText: barcodeText,
@@ -133,7 +137,9 @@ struct ContentView: View {
               onCameraStatusTapped: checkCameraPermission,
               onCameraPermissionTapped: requestCameraPermission,
               onTakePhotoTapped: takePhoto,
-              onScanDocumentTapped: scanDocument)
+              onScanDocumentTapped: scanDocument
+            )
+            .agentPanel()
             PhotosSection(
               status: photoPermissionStatus,
               albumTitle: $photoAlbumTitle,
@@ -152,7 +158,9 @@ struct ContentView: View {
               onRemovePreviewTapped: previewPhotoRemoveFromAlbum,
               onHidePreviewTapped: previewPhotoHide,
               onDeletePreviewTapped: previewPhotoDelete,
-              onConfirmPreviewTapped: confirmPhotoPreview)
+              onConfirmPreviewTapped: confirmPhotoPreview
+            )
+            .agentPanel()
             ContactsSection(
               status: contactPermissionStatus,
               query: $contactQuery,
@@ -171,7 +179,9 @@ struct ContentView: View {
               onUpdatePreviewTapped: previewContactUpdate,
               onDeletePreviewTapped: previewContactDelete,
               onMergePreviewTapped: previewContactMerge,
-              onConfirmPreviewTapped: confirmContactPreview)
+              onConfirmPreviewTapped: confirmContactPreview
+            )
+            .agentPanel()
             EventKitSection(
               calendarStatus: calendarPermissionStatus,
               reminderStatus: reminderPermissionStatus,
@@ -195,7 +205,9 @@ struct ContentView: View {
               onCalendarDeletePreviewTapped: previewCalendarEventDelete,
               onReminderUpdatePreviewTapped: previewReminderUpdate,
               onReminderCompleteTapped: completeReminder,
-              onConfirmPreviewTapped: confirmEventKitPreview)
+              onConfirmPreviewTapped: confirmEventKitPreview
+            )
+            .agentPanel()
             NotificationSection(
               status: notificationPermissionStatus,
               title: $notificationTitle,
@@ -205,7 +217,9 @@ struct ContentView: View {
               onStatusTapped: checkNotificationPermission,
               onPermissionTapped: requestNotificationPermission,
               onScheduleTapped: scheduleNotification,
-              onCancelTapped: cancelNotification)
+              onCancelTapped: cancelNotification
+            )
+            .agentPanel()
             AudioSpeechSection(
               permissionStatus: audioPermissionStatus,
               durationSeconds: $audioRecordSeconds,
@@ -214,10 +228,13 @@ struct ContentView: View {
               onStatusTapped: checkAudioSpeechPermissions,
               onPermissionTapped: requestAudioSpeechPermissions,
               onRecordTapped: recordAudio,
-              onTranscribeTapped: transcribeLatestRecording)
+              onTranscribeTapped: transcribeLatestRecording
+            )
+            .agentPanel()
           }
           .padding()
         }
+        .background(AgentTheme.canvas.ignoresSafeArea())
         .tabItem { Label("Sources", systemImage: "folder.badge.gearshape") }
 
         ScrollView {
@@ -229,16 +246,21 @@ struct ContentView: View {
               bundleMarkdown: indexBundleMarkdown,
               onRebuildTapped: rebuildIndex,
               onSearchTapped: searchIndex,
-              onExportTapped: exportIndexBundle)
+              onExportTapped: exportIndexBundle
+            )
+            .agentPanel()
           }
           .padding()
         }
+        .background(AgentTheme.canvas.ignoresSafeArea())
         .tabItem { Label("Index", systemImage: "doc.text.magnifyingglass") }
 
         ScrollView {
           AuditSection(entries: auditLog.entries, persistenceStatus: auditPersistenceStatus)
             .padding()
+            .agentPanel()
         }
+        .background(AgentTheme.canvas.ignoresSafeArea())
         .tabItem { Label("Audit", systemImage: "list.bullet.clipboard") }
 
         ScrollView {
@@ -248,7 +270,9 @@ struct ContentView: View {
               deepLinkString: $appDeepLinkString,
               status: appOpenStatus,
               onOpenURLTapped: openAppURL,
-              onOpenDeepLinkTapped: openAppDeepLink)
+              onOpenDeepLinkTapped: openAppDeepLink
+            )
+            .agentPanel()
             AppIntentSection(
               actions: supportedAppActions,
               shortcutName: $shortcutName,
@@ -256,7 +280,9 @@ struct ContentView: View {
               status: appIntentStatus,
               onListTapped: listSupportedAppActions,
               onInvokeTapped: invokeFirstAppAction,
-              onRunShortcutTapped: runConfiguredShortcut)
+              onRunShortcutTapped: runConfiguredShortcut
+            )
+            .agentPanel()
             LocalModelSection(
               text: $localModelText,
               status: localModelStatus,
@@ -264,12 +290,17 @@ struct ContentView: View {
               onAvailabilityTapped: checkLocalModelAvailability,
               onClassifyTapped: classifyLocalText,
               onSummarizeTapped: summarizeLocalText,
-              onEmbedTapped: embedLocalText)
+              onEmbedTapped: embedLocalText
+            )
+            .agentPanel()
             PrivacySection()
+              .agentPanel()
             ToolSection(registry: registry)
+              .agentPanel()
           }
           .padding()
         }
+        .background(AgentTheme.canvas.ignoresSafeArea())
         .tabItem { Label("Settings", systemImage: "lock.shield") }
       }
       .navigationTitle("iOS Agent")
@@ -1649,16 +1680,81 @@ struct ContentView: View {
   }
 }
 
+private enum AgentTheme {
+  static let canvas = Color(uiColor: .systemGroupedBackground)
+  static let panel = Color(uiColor: .secondarySystemGroupedBackground)
+  static let field = Color(uiColor: .tertiarySystemGroupedBackground)
+  static let ring = Color.primary.opacity(0.08)
+  static let softRing = Color.primary.opacity(0.05)
+  static let accentWash = Color.accentColor.opacity(0.12)
+  static let radius: CGFloat = 18
+}
+
+private struct AgentPanelModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    content
+      .padding(16)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(.regularMaterial)
+      .overlay(
+        RoundedRectangle(cornerRadius: AgentTheme.radius, style: .continuous)
+          .stroke(AgentTheme.ring, lineWidth: 1)
+      )
+      .clipShape(RoundedRectangle(cornerRadius: AgentTheme.radius, style: .continuous))
+  }
+}
+
+extension View {
+  fileprivate func agentPanel() -> some View {
+    modifier(AgentPanelModifier())
+  }
+
+  fileprivate func agentOutputBlock(monospaced: Bool = false) -> some View {
+    self
+      .font(monospaced ? .caption.monospaced() : .caption)
+      .padding(10)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(AgentTheme.field)
+      .overlay(
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+          .stroke(AgentTheme.softRing, lineWidth: 1)
+      )
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+  }
+}
+
+private struct AgentStatusPill: View {
+  let text: String
+  let systemImage: String
+
+  var body: some View {
+    Label(text, systemImage: systemImage)
+      .font(.caption.weight(.semibold))
+      .foregroundStyle(.secondary)
+      .padding(.horizontal, 10)
+      .padding(.vertical, 6)
+      .background(AgentTheme.field)
+      .clipShape(Capsule())
+  }
+}
+
 private struct ChatBubble: View {
   let text: String
   let isUser: Bool
 
   var body: some View {
     Text(text)
+      .font(.callout)
+      .foregroundStyle(isUser ? .primary : .secondary)
       .padding(12)
+      .frame(maxWidth: 310, alignment: isUser ? .trailing : .leading)
+      .background(isUser ? AgentTheme.accentWash : AgentTheme.panel)
+      .overlay(
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+          .stroke(isUser ? Color.accentColor.opacity(0.18) : AgentTheme.softRing, lineWidth: 1)
+      )
+      .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
       .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
-      .background(isUser ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.12))
-      .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
   }
 }
 
@@ -1722,6 +1818,30 @@ private struct ChatScreen: View {
     VStack(spacing: 0) {
       ScrollView {
         LazyVStack(alignment: .leading, spacing: 14) {
+          VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Workspace")
+                  .font(.title2.weight(.semibold))
+                Text("Local agent")
+                  .font(.caption.weight(.medium))
+                  .foregroundStyle(.secondary)
+              }
+
+              Spacer()
+
+              AgentStatusPill(text: "\(items.count)", systemImage: "list.bullet.clipboard")
+                .monospacedDigit()
+            }
+
+            HStack(spacing: 8) {
+              AgentStatusPill(text: "Local", systemImage: "iphone")
+              AgentStatusPill(text: "Preview", systemImage: "checkmark.shield")
+              AgentStatusPill(text: "Audit", systemImage: "clock.arrow.circlepath")
+            }
+          }
+          .agentPanel()
+
           ForEach(items) { item in
             switch item.kind {
             case .assistant:
@@ -1735,18 +1855,24 @@ private struct ChatScreen: View {
         }
         .padding()
       }
+      .background(AgentTheme.canvas)
 
       HStack(spacing: 10) {
         TextField("Message", text: $message, axis: .vertical)
           .textFieldStyle(.roundedBorder)
           .lineLimit(1...4)
 
-        Button("Send", action: onSendTapped)
-          .buttonStyle(.borderedProminent)
-          .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        Button(action: onSendTapped) {
+          Image(systemName: "arrow.up")
+            .font(.headline.weight(.semibold))
+            .frame(width: 36, height: 36)
+        }
+        .buttonStyle(.borderedProminent)
+        .clipShape(Circle())
+        .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
       }
       .padding()
-      .background(.regularMaterial)
+      .background(.bar)
     }
   }
 }
@@ -1755,29 +1881,58 @@ private struct ToolCallCard: View {
   let item: ChatTranscriptItem
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
+    VStack(alignment: .leading, spacing: 10) {
       HStack {
-        Text(item.title)
+        Label(item.title, systemImage: "terminal")
           .font(.caption.monospaced().weight(.semibold))
+          .foregroundStyle(.primary)
         Spacer()
         Text(item.status)
-          .font(.caption.weight(.semibold))
-          .foregroundStyle(.secondary)
+          .font(.caption2.weight(.bold))
+          .foregroundStyle(statusColor)
+          .padding(.horizontal, 8)
+          .padding(.vertical, 4)
+          .background(statusColor.opacity(0.12))
+          .clipShape(Capsule())
       }
-      Text("Requested: \(item.body)")
-        .font(.caption)
-      Text("Source: app-local tool registry")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      if !item.result.isEmpty {
-        Text("Result: \(item.result)")
+      VStack(alignment: .leading, spacing: 4) {
+        Text("Requested")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+        Text(item.body)
           .font(.caption)
+      }
+      if !item.result.isEmpty {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Result")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+          Text(item.result)
+            .font(.caption)
+        }
       }
     }
     .padding(12)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .background(Color.blue.opacity(0.08))
-    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    .background(AgentTheme.panel)
+    .overlay(
+      RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .stroke(Color.accentColor.opacity(0.16), lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+  }
+
+  private var statusColor: Color {
+    switch item.status {
+    case "Done":
+      .green
+    case "Failed":
+      .red
+    case "Confirm", "Waiting":
+      .orange
+    default:
+      .secondary
+    }
   }
 }
 
@@ -2047,22 +2202,14 @@ private struct FileImportSection: View {
 
       if !readFileText.isEmpty {
         Text(readFileText)
-          .font(.caption.monospaced())
           .lineLimit(8)
-          .padding(8)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Color.secondary.opacity(0.08))
-          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .agentOutputBlock(monospaced: true)
       }
 
       if !contextBundleMarkdown.isEmpty {
         Text(contextBundleMarkdown)
-          .font(.caption.monospaced())
           .lineLimit(8)
-          .padding(8)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Color.secondary.opacity(0.08))
-          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .agentOutputBlock(monospaced: true)
       }
     }
   }
@@ -2122,12 +2269,8 @@ private struct IndexSection: View {
 
       if !bundleMarkdown.isEmpty {
         Text(bundleMarkdown)
-          .font(.caption.monospaced())
           .lineLimit(8)
-          .padding(8)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Color.secondary.opacity(0.08))
-          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .agentOutputBlock(monospaced: true)
       }
 
       if !index.skippedFiles.isEmpty {
@@ -2194,22 +2337,14 @@ private struct VisionSection: View {
 
       if !ocrText.isEmpty {
         Text(ocrText)
-          .font(.caption)
           .lineLimit(8)
-          .padding(8)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Color.secondary.opacity(0.08))
-          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .agentOutputBlock()
       }
 
       if !barcodeText.isEmpty {
         Text(barcodeText)
-          .font(.caption.monospaced())
           .lineLimit(4)
-          .padding(8)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Color.secondary.opacity(0.08))
-          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .agentOutputBlock(monospaced: true)
       }
     }
   }
