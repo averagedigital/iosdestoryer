@@ -12,6 +12,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `files.context_bundle` local Markdown bundle builder for matched imported files.
 - `vision.ocr_image` OCR over user-picked image files through Apple's Vision framework.
 - `photos.permission_status` inspectable PhotoKit authorization status without reading assets.
+- `contacts.permission_status` inspectable Contacts authorization status without reading contacts.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries

@@ -13,6 +13,7 @@ struct ContentView: View {
   @State private var contextBundleMarkdown = ""
   @State private var ocrText = ""
   @State private var photoPermissionStatus = "Not Checked"
+  @State private var contactPermissionStatus = "Not Checked"
 
   var body: some View {
     NavigationStack {
@@ -37,6 +38,9 @@ struct ContentView: View {
             PhotosSection(
               status: photoPermissionStatus,
               onCheckTapped: checkPhotoPermission)
+            ContactsSection(
+              status: contactPermissionStatus,
+              onCheckTapped: checkContactPermission)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -164,6 +168,13 @@ struct ContentView: View {
     photoPermissionStatus = status.displayName
     auditLog.record(
       toolName: "photos.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func checkContactPermission() {
+    let status = ContactPermissionService().currentStatus()
+    contactPermissionStatus = status.displayName
+    auditLog.record(
+      toolName: "contacts.permission_status", summary: status.rawValue, status: .succeeded)
   }
 
   private var importsDirectory: URL {
@@ -322,6 +333,29 @@ private struct PhotosSection: View {
       HStack {
         Button(action: onCheckTapped) {
           Label("Check Permission", systemImage: "photo.on.rectangle")
+        }
+        .buttonStyle(.bordered)
+
+        Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+}
+
+private struct ContactsSection: View {
+  let status: String
+  let onCheckTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Contacts")
+        .font(.headline)
+
+      HStack {
+        Button(action: onCheckTapped) {
+          Label("Check Permission", systemImage: "person.crop.circle")
         }
         .buttonStyle(.bordered)
 
