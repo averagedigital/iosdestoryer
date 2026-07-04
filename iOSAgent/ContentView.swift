@@ -1,5 +1,7 @@
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
+import VisionKit
 
 struct ContentView: View {
   private let registry = ToolRegistry.defaultRegistry()
@@ -7,6 +9,9 @@ struct ContentView: View {
   @State private var auditLog = AuditLog()
   @State private var isImportingFile = false
   @State private var isImportingOCRImage = false
+  @State private var isImportingBarcodeImage = false
+  @State private var isTakingPhoto = false
+  @State private var isScanningDocument = false
   @State private var importedFileName: String?
   @State private var allowedSources: [AllowedFileSource] = []
   @State private var fileWriteName = "note.txt"
@@ -24,6 +29,8 @@ struct ContentView: View {
   @State private var indexResults: [IndexedChunk] = []
   @State private var indexBundleMarkdown = ""
   @State private var ocrText = ""
+  @State private var barcodeText = ""
+  @State private var cameraStatus = ""
   @State private var photoPermissionStatus = "Not Checked"
   @State private var photoAlbumTitle = "Agent Docs"
   @State private var photoAssets: [PhotoAssetSummary] = []
@@ -103,7 +110,12 @@ struct ContentView: View {
               onExportTapped: exportIndexBundle)
             VisionSection(
               ocrText: ocrText,
-              onOCRImageTapped: { isImportingOCRImage = true })
+              barcodeText: barcodeText,
+              cameraStatus: cameraStatus,
+              onOCRImageTapped: { isImportingOCRImage = true },
+              onBarcodeImageTapped: { isImportingBarcodeImage = true },
+              onTakePhotoTapped: takePhoto,
+              onScanDocumentTapped: scanDocument)
             PhotosSection(
               status: photoPermissionStatus,
               albumTitle: $photoAlbumTitle,
@@ -220,6 +232,22 @@ struct ContentView: View {
         allowsMultipleSelection: false,
         onCompletion: handleOCRImageImport
       )
+      .fileImporter(
+        isPresented: $isImportingBarcodeImage,
+        allowedContentTypes: [.image],
+        allowsMultipleSelection: false,
+        onCompletion: handleBarcodeImageImport
+      )
+      .sheet(isPresented: $isTakingPhoto) {
+        ImageCaptureView { imageData in
+          handleCameraPhoto(imageData)
+        }
+      }
+      .sheet(isPresented: $isScanningDocument) {
+        DocumentScannerView { pages in
+          handleDocumentScan(pages)
+        }
+      }
     }
   }
 
@@ -438,6 +466,90 @@ struct ContentView: View {
       ocrText = ""
       auditLog.record(
         toolName: "vision.ocr_image", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func handleBarcodeImageImport(_ result: Result<[URL], Error>) {
+    switch result {
+    case .success(let urls):
+      guard let url = urls.first else { return }
+      let didStartAccess = url.startAccessingSecurityScopedResource()
+      defer {
+        if didStartAccess {
+          url.stopAccessingSecurityScopedResource()
+        }
+      }
+
+      do {
+        let imageData = try Data(contentsOf: url)
+        let result = try OCRService().detectBarcodes(in: imageData)
+        barcodeText = result.barcodes.map(\.payload).joined(separator: "\n")
+        auditLog.record(
+          toolName: "vision.detect_barcodes_if_easy",
+          summary: "\(result.barcodes.count) barcodes",
+          status: .succeeded)
+      } catch {
+        barcodeText = ""
+        auditLog.record(
+          toolName: "vision.detect_barcodes_if_easy", summary: error.localizedDescription,
+          status: .failed)
+      }
+    case .failure(let error):
+      barcodeText = ""
+      auditLog.record(
+        toolName: "vision.detect_barcodes_if_easy", summary: error.localizedDescription,
+        status: .failed)
+    }
+  }
+
+  private func takePhoto() {
+    guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+      cameraStatus = "Camera unavailable"
+      auditLog.record(toolName: "camera.take_photo", summary: cameraStatus, status: .failed)
+      return
+    }
+    isTakingPhoto = true
+  }
+
+  private func scanDocument() {
+    guard VNDocumentCameraViewController.isSupported else {
+      cameraStatus = "Document scanner unavailable"
+      auditLog.record(toolName: "camera.scan_document", summary: cameraStatus, status: .failed)
+      return
+    }
+    isScanningDocument = true
+  }
+
+  private func handleCameraPhoto(_ imageData: Data?) {
+    isTakingPhoto = false
+    guard let imageData else { return }
+
+    do {
+      let fileName = "camera-\(Int(Date().timeIntervalSince1970)).jpg"
+      let capture = try CameraCaptureService(directory: cameraDirectory)
+        .savePhoto(imageData, fileName: fileName)
+      cameraStatus = capture.fileURL.lastPathComponent
+      auditLog.record(toolName: "camera.take_photo", summary: cameraStatus, status: .succeeded)
+    } catch {
+      cameraStatus = error.localizedDescription
+      auditLog.record(toolName: "camera.take_photo", summary: cameraStatus, status: .failed)
+    }
+  }
+
+  private func handleDocumentScan(_ result: Result<[Data], Error>?) {
+    isScanningDocument = false
+    guard let result else { return }
+
+    do {
+      let pages = try result.get()
+      let basename = "scan-\(Int(Date().timeIntervalSince1970))"
+      let capture = try CameraCaptureService(directory: cameraDirectory)
+        .saveScannedDocument(pages, basename: basename)
+      cameraStatus = "\(capture.pageCount) page(s)"
+      auditLog.record(toolName: "camera.scan_document", summary: cameraStatus, status: .succeeded)
+    } catch {
+      cameraStatus = error.localizedDescription
+      auditLog.record(toolName: "camera.scan_document", summary: cameraStatus, status: .failed)
     }
   }
 
@@ -924,6 +1036,10 @@ struct ContentView: View {
     URL.documentsDirectory.appending(path: "Recordings", directoryHint: .isDirectory)
   }
 
+  private var cameraDirectory: URL {
+    URL.documentsDirectory.appending(path: "Camera", directoryHint: .isDirectory)
+  }
+
   private var shareInboxDirectory: URL {
     URL.documentsDirectory.appending(path: "ShareInbox", directoryHint: .isDirectory)
   }
@@ -1243,17 +1359,47 @@ private struct IndexSection: View {
 
 private struct VisionSection: View {
   let ocrText: String
+  let barcodeText: String
+  let cameraStatus: String
   let onOCRImageTapped: () -> Void
+  let onBarcodeImageTapped: () -> Void
+  let onTakePhotoTapped: () -> Void
+  let onScanDocumentTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text("Vision")
         .font(.headline)
 
-      Button(action: onOCRImageTapped) {
-        Label("OCR Image", systemImage: "text.viewfinder")
+      HStack {
+        Button(action: onOCRImageTapped) {
+          Label("OCR", systemImage: "text.viewfinder")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onBarcodeImageTapped) {
+          Label("Barcode", systemImage: "barcode.viewfinder")
+        }
+        .buttonStyle(.bordered)
       }
-      .buttonStyle(.bordered)
+
+      HStack {
+        Button(action: onTakePhotoTapped) {
+          Label("Photo", systemImage: "camera")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onScanDocumentTapped) {
+          Label("Scan", systemImage: "doc.viewfinder")
+        }
+        .buttonStyle(.bordered)
+      }
+
+      if !cameraStatus.isEmpty {
+        Text(cameraStatus)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
 
       if !ocrText.isEmpty {
         Text(ocrText)
@@ -1264,6 +1410,99 @@ private struct VisionSection: View {
           .background(Color.secondary.opacity(0.08))
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       }
+
+      if !barcodeText.isEmpty {
+        Text(barcodeText)
+          .font(.caption.monospaced())
+          .lineLimit(4)
+          .padding(8)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.secondary.opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      }
+    }
+  }
+}
+
+private struct ImageCaptureView: UIViewControllerRepresentable {
+  let completion: (Data?) -> Void
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator(completion: completion)
+  }
+
+  func makeUIViewController(context: Context) -> UIImagePickerController {
+    let picker = UIImagePickerController()
+    picker.sourceType = .camera
+    picker.delegate = context.coordinator
+    return picker
+  }
+
+  func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+  final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate
+  {
+    private let completion: (Data?) -> Void
+
+    init(completion: @escaping (Data?) -> Void) {
+      self.completion = completion
+    }
+
+    func imagePickerController(
+      _ picker: UIImagePickerController,
+      didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+    ) {
+      completion((info[.originalImage] as? UIImage)?.jpegData(compressionQuality: 0.9))
+    }
+
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+      completion(nil)
+    }
+  }
+}
+
+private struct DocumentScannerView: UIViewControllerRepresentable {
+  let completion: (Result<[Data], Error>?) -> Void
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator(completion: completion)
+  }
+
+  func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
+    let scanner = VNDocumentCameraViewController()
+    scanner.delegate = context.coordinator
+    return scanner
+  }
+
+  func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context)
+  {}
+
+  final class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
+    private let completion: (Result<[Data], Error>?) -> Void
+
+    init(completion: @escaping (Result<[Data], Error>?) -> Void) {
+      self.completion = completion
+    }
+
+    func documentCameraViewController(
+      _ controller: VNDocumentCameraViewController,
+      didFinishWith scan: VNDocumentCameraScan
+    ) {
+      let pages = (0..<scan.pageCount).compactMap {
+        scan.imageOfPage(at: $0).jpegData(compressionQuality: 0.9)
+      }
+      completion(.success(pages))
+    }
+
+    func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
+      completion(nil)
+    }
+
+    func documentCameraViewController(
+      _ controller: VNDocumentCameraViewController,
+      didFailWithError error: Error
+    ) {
+      completion(.failure(error))
     }
   }
 }

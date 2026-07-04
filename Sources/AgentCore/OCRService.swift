@@ -23,10 +23,19 @@ public struct OCRService {
       text: observations.map(\.text).joined(separator: "\n"),
       observations: observations)
   }
+
+  public func detectBarcodes(in imageData: Data) throws -> BarcodeResult {
+    guard !imageData.isEmpty else {
+      throw OCRServiceError.emptyImageData
+    }
+
+    return BarcodeResult(barcodes: try recognizer.detectBarcodes(in: imageData))
+  }
 }
 
 public protocol OCRRecognizing {
   func recognizeText(in imageData: Data) throws -> [OCRTextObservation]
+  func detectBarcodes(in imageData: Data) throws -> [BarcodeObservation]
 }
 
 public struct OCRResult: Equatable, Sendable {
@@ -45,6 +54,26 @@ public struct OCRTextObservation: Equatable, Sendable {
 
   public init(text: String, confidence: Float) {
     self.text = text
+    self.confidence = confidence
+  }
+}
+
+public struct BarcodeResult: Equatable, Sendable {
+  public let barcodes: [BarcodeObservation]
+
+  public init(barcodes: [BarcodeObservation]) {
+    self.barcodes = barcodes
+  }
+}
+
+public struct BarcodeObservation: Equatable, Sendable {
+  public let payload: String
+  public let symbology: String
+  public let confidence: Float
+
+  public init(payload: String, symbology: String, confidence: Float) {
+    self.payload = payload
+    self.symbology = symbology
     self.confidence = confidence
   }
 }
@@ -93,12 +122,39 @@ extension OCRServiceError: LocalizedError {
         return OCRTextObservation(text: candidate.string, confidence: candidate.confidence)
       }
     }
+
+    public func detectBarcodes(in imageData: Data) throws -> [BarcodeObservation] {
+      guard
+        let imageSource = CGImageSourceCreateWithData(imageData as CFData, nil),
+        let image = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+      else {
+        throw OCRServiceError.unsupportedImageData
+      }
+
+      let request = VNDetectBarcodesRequest()
+      let handler = VNImageRequestHandler(cgImage: image)
+      try handler.perform([request])
+
+      return (request.results ?? []).compactMap { observation in
+        guard let payload = observation.payloadStringValue else {
+          return nil
+        }
+        return BarcodeObservation(
+          payload: payload,
+          symbology: observation.symbology.rawValue,
+          confidence: observation.confidence)
+      }
+    }
   }
 #else
   public struct VisionTextRecognizer: OCRRecognizing {
     public init() {}
 
     public func recognizeText(in imageData: Data) throws -> [OCRTextObservation] {
+      throw OCRServiceError.visionUnavailable
+    }
+
+    public func detectBarcodes(in imageData: Data) throws -> [BarcodeObservation] {
       throw OCRServiceError.visionUnavailable
     }
   }

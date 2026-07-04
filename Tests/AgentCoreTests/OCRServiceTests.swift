@@ -17,6 +17,17 @@ final class OCRServiceTests: XCTestCase {
     XCTAssertEqual(result.observations.map(\.text), ["Invoice", "Total 100"])
   }
 
+  func testDetectsBarcodesWithInjectedRecognizer() throws {
+    let service = OCRService(
+      recognizer: StubOCRRecognizer(
+        observations: [],
+        barcodes: [BarcodeObservation(payload: "123456", symbology: "QR", confidence: 0.7)]))
+
+    let result = try service.detectBarcodes(in: Data([1, 2, 3]))
+
+    XCTAssertEqual(result.barcodes.map(\.payload), ["123456"])
+  }
+
   func testRejectsEmptyImageData() {
     let service = OCRService(recognizer: StubOCRRecognizer(observations: []))
 
@@ -28,8 +39,13 @@ final class OCRServiceTests: XCTestCase {
 
 private struct StubOCRRecognizer: OCRRecognizing {
   let observations: [OCRTextObservation]
+  var barcodes: [BarcodeObservation] = []
 
   func recognizeText(in imageData: Data) throws -> [OCRTextObservation] {
     observations
+  }
+
+  func detectBarcodes(in imageData: Data) throws -> [BarcodeObservation] {
+    barcodes
   }
 }

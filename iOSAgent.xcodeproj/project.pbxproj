@@ -25,6 +25,7 @@
 		10000000000000000000009E /* AppIntentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009F /* AppIntentService.swift */; };
 		1000000000000000000000A0 /* AgentAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A1 /* AgentAppIntents.swift */; };
 		1000000000000000000000A2 /* AudioSpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A3 /* AudioSpeechService.swift */; };
+		1000000000000000000000A4 /* CameraCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A5 /* CameraCaptureService.swift */; };
 		100000000000000000000025 /* ContactPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* ContactPermissionService.swift */; };
 		100000000000000000000027 /* EventPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* EventPermissionService.swift */; };
 		100000000000000000000029 /* FileReadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002A /* FileReadService.swift */; };
@@ -57,6 +58,7 @@
 		10000000000000000000009F /* AppIntentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentService.swift; sourceTree = "<group>"; };
 		1000000000000000000000A1 /* AgentAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAppIntents.swift; sourceTree = "<group>"; };
 		1000000000000000000000A3 /* AudioSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioSpeechService.swift; sourceTree = "<group>"; };
+		1000000000000000000000A5 /* CameraCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureService.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* PhotoPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* ContactPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* EventPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPermissionService.swift; sourceTree = "<group>"; };
@@ -89,6 +91,7 @@
 				10000000000000000000009F /* AppIntentService.swift */,
 				10000000000000000000009D /* AppURLService.swift */,
 				1000000000000000000000A3 /* AudioSpeechService.swift */,
+				1000000000000000000000A5 /* CameraCaptureService.swift */,
 				100000000000000000000013 /* AuditLog.swift */,
 				100000000000000000000095 /* ContactLibraryService.swift */,
 				100000000000000000000026 /* ContactPermissionService.swift */,
@@ -204,6 +207,7 @@
 				10000000000000000000009E /* AppIntentService.swift in Sources */,
 				10000000000000000000009C /* AppURLService.swift in Sources */,
 				1000000000000000000000A2 /* AudioSpeechService.swift in Sources */,
+				1000000000000000000000A4 /* CameraCaptureService.swift in Sources */,
 				100000000000000000000003 /* AuditLog.swift in Sources */,
 				100000000000000000000094 /* ContactLibraryService.swift in Sources */,
 				100000000000000000000025 /* ContactPermissionService.swift in Sources */,
