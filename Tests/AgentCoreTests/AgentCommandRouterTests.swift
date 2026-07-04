@@ -23,6 +23,26 @@ final class AgentCommandRouterTests: XCTestCase {
       "photos.classify_candidates")
   }
 
+  func testRoutesNotificationRequest() {
+    XCTAssertEqual(router.route("создай уведомление через минуту")?.toolName, "notify.schedule")
+  }
+
+  func testRoutesAudioRecordingRequest() {
+    XCTAssertEqual(router.route("запиши аудио заметку")?.toolName, "audio.record")
+  }
+
+  func testRoutesShortcutRequest() {
+    XCTAssertEqual(
+      router.route("запусти shortcut Daily Review")?.toolName,
+      "shortcuts.run_user_configured_shortcut")
+  }
+
+  func testRoutesLocalClassificationRequest() {
+    XCTAssertEqual(
+      router.route("классифицируй текст договора")?.toolName,
+      "local_model.classify_if_available")
+  }
+
   func testRoutesContextBundleRequest() {
     XCTAssertEqual(
       router.route("собери context bundle по теме")?.toolName,

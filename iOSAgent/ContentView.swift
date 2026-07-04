@@ -540,6 +540,9 @@ struct ContentView: View {
     case "reminders.create":
       reminderTitle = message
       createReminder()
+    case "notify.schedule":
+      notificationTitle = message
+      scheduleNotification()
     case "contacts.create":
       contactGivenName = message
       createContact()
@@ -547,6 +550,13 @@ struct ContentView: View {
       scanDocument()
     case "photos.classify_candidates":
       classifyPhotoCandidates()
+    case "audio.record":
+      recordAudio()
+    case "shortcuts.run_user_configured_shortcut":
+      runConfiguredShortcut()
+    case "local_model.classify_if_available":
+      localModelText = message
+      classifyLocalText()
     default:
       auditLog.record(
         toolName: route.toolName, summary: "Route not wired.", status: .failed)

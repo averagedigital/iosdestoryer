@@ -10,8 +10,20 @@ public struct AgentCommandRouter: Sendable {
     if containsAny(text, ["context bundle", "контекст", "собери context"]) {
       return AgentCommandRoute(toolName: "index.export_context_bundle")
     }
+    if containsAny(text, ["shortcut", "shortcuts", "команду", "быструю команду"]) {
+      return AgentCommandRoute(toolName: "shortcuts.run_user_configured_shortcut")
+    }
+    if containsAny(text, ["уведом", "notification", "notify"]) {
+      return AgentCommandRoute(toolName: "notify.schedule")
+    }
     if containsAny(text, ["напомин", "reminder"]) {
       return AgentCommandRoute(toolName: "reminders.create")
+    }
+    if containsAny(text, ["запиши аудио", "аудио замет", "record audio"]) {
+      return AgentCommandRoute(toolName: "audio.record")
+    }
+    if containsAny(text, ["классифиц", "classify"]) {
+      return AgentCommandRoute(toolName: "local_model.classify_if_available")
     }
     if containsAny(text, ["контакт", "contact"]) {
       return AgentCommandRoute(toolName: "contacts.create")
