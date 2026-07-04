@@ -39,6 +39,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `shortcuts.run_user_configured_shortcut` opens a named user-created Shortcut through the official Shortcuts URL scheme; it does not control arbitrary third-party apps.
 - `audio.permission_status`, `audio.permission`, `audio.record`, and `speech.transcribe` use AVFoundation and Speech after explicit user action and permission; transcription requires on-device recognition.
 - `local_model.classify_if_available` uses NaturalLanguage on device; `local_model.summarize_if_available` and `local_model.embed_if_available` return explicit unavailable results until a local Core ML/Foundation Models-backed model is bundled.
+- GitHub Actions CI runs `swift test` and an unsigned generic iOS `xcodebuild` on push and pull request.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries
