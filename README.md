@@ -100,6 +100,10 @@ Sources checked:
 - Real-device permission prompts and limited-access behavior still need manual validation for Photos, Contacts, Calendar, Reminders, Camera, Microphone, Speech, and Notifications.
 - Share Extension ingestion must be checked from the iOS share sheet on a simulator/device.
 - App Intents and user-configured Shortcut execution must be checked from Shortcuts/Siri surfaces.
-- UI has build coverage, but no simulator screenshot pass has been recorded yet.
 
 Next feature should be a completion audit against the objective matrix, then only fill verified gaps.
+
+## Last Simulator Smoke
+
+- `xcodebuild -project iOSAgent.xcodeproj -scheme iOSAgent -destination 'id=30E8D997-708D-4051-AF90-4A7D90310F5B' -derivedDataPath /tmp/iosagent-dd build` passed on iPhone 17 / iOS 26.5 simulator.
+- `xcrun simctl install .../iOSAgent.app`, `xcrun simctl launch ... com.averagedigital.iosagent`, and `xcrun simctl io ... screenshot /tmp/iosagent-chat.png` passed.
