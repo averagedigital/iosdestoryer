@@ -18,6 +18,7 @@ public struct ToolRegistry: Sendable {
         appleFrameworks: ["UIKit", "UniformTypeIdentifiers"]),
       AgentTool(name: "files.pick_folder", domain: .files, appleFrameworks: ["UIKit"]),
       AgentTool(name: "files.search", domain: .index, appleFrameworks: ["Foundation"]),
+      AgentTool(name: "files.context_bundle", domain: .index, appleFrameworks: ["Foundation"]),
       AgentTool(
         name: "files.delete_with_preview", domain: .files, appleFrameworks: ["Foundation"],
         isDestructive: true),

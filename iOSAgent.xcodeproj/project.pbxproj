@@ -13,6 +13,7 @@
 		100000000000000000000004 /* ToolRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000014 /* ToolRegistry.swift */; };
 		100000000000000000000005 /* FileImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000016 /* FileImportService.swift */; };
 		100000000000000000000006 /* FileSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000017 /* FileSearchService.swift */; };
+		100000000000000000000007 /* ContextBundleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000018 /* ContextBundleService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		100000000000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		100000000000000000000016 /* FileImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileImportService.swift; sourceTree = "<group>"; };
 		100000000000000000000017 /* FileSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSearchService.swift; sourceTree = "<group>"; };
+		100000000000000000000018 /* ContextBundleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextBundleService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -50,6 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000013 /* AuditLog.swift */,
+				100000000000000000000018 /* ContextBundleService.swift */,
 				100000000000000000000016 /* FileImportService.swift */,
 				100000000000000000000017 /* FileSearchService.swift */,
 				100000000000000000000014 /* ToolRegistry.swift */,
@@ -147,6 +150,7 @@
 				100000000000000000000001 /* iOSAgentApp.swift in Sources */,
 				100000000000000000000002 /* ContentView.swift in Sources */,
 				100000000000000000000003 /* AuditLog.swift in Sources */,
+				100000000000000000000007 /* ContextBundleService.swift in Sources */,
 				100000000000000000000005 /* FileImportService.swift in Sources */,
 				100000000000000000000006 /* FileSearchService.swift in Sources */,
 				100000000000000000000004 /* ToolRegistry.swift in Sources */,

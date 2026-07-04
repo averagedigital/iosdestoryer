@@ -9,6 +9,7 @@ struct ContentView: View {
   @State private var importedFileName: String?
   @State private var fileSearchQuery = ""
   @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
+  @State private var contextBundleMarkdown = ""
 
   var body: some View {
     NavigationStack {
@@ -23,8 +24,10 @@ struct ContentView: View {
               importedFileName: importedFileName,
               searchQuery: $fileSearchQuery,
               searchReport: fileSearchReport,
+              contextBundleMarkdown: contextBundleMarkdown,
               onImportTapped: { isImportingFile = true },
-              onSearchTapped: searchImportedFiles)
+              onSearchTapped: searchImportedFiles,
+              onBundleTapped: buildContextBundle)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -93,6 +96,23 @@ struct ContentView: View {
     }
   }
 
+  private func buildContextBundle() {
+    do {
+      let bundle = try ContextBundleService().build(
+        title: fileSearchQuery.isEmpty ? "Imported Files" : fileSearchQuery,
+        files: fileSearchReport.matches)
+      contextBundleMarkdown = bundle.markdown
+      auditLog.record(
+        toolName: "files.context_bundle",
+        summary: "\(fileSearchReport.matches.count) files, \(bundle.skippedFiles.count) skipped",
+        status: .succeeded)
+    } catch {
+      contextBundleMarkdown = ""
+      auditLog.record(
+        toolName: "files.context_bundle", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
   private var importsDirectory: URL {
     URL.documentsDirectory.appending(path: "Imports", directoryHint: .isDirectory)
   }
@@ -148,8 +168,10 @@ private struct FileImportSection: View {
   let importedFileName: String?
   @Binding var searchQuery: String
   let searchReport: FileSearchReport
+  let contextBundleMarkdown: String
   let onImportTapped: () -> Void
   let onSearchTapped: () -> Void
+  let onBundleTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -188,6 +210,21 @@ private struct FileImportSection: View {
         Text("\(searchReport.skippedFiles.count) non-text file skipped")
           .font(.caption)
           .foregroundStyle(.secondary)
+      }
+
+      if !searchReport.matches.isEmpty {
+        Button("Build Context Bundle", action: onBundleTapped)
+          .buttonStyle(.bordered)
+      }
+
+      if !contextBundleMarkdown.isEmpty {
+        Text(contextBundleMarkdown)
+          .font(.caption.monospaced())
+          .lineLimit(8)
+          .padding(8)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.secondary.opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       }
     }
   }

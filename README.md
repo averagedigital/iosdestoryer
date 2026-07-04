@@ -9,6 +9,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `AgentCore` Swift package: tool registry and audit log.
 - `files.pick_file` core import service: copies a user-picked file into the app container and keeps same-name imports instead of overwriting.
 - `files.search` lexical search over imported UTF-8 files, with skipped non-text files surfaced.
+- `files.context_bundle` local Markdown bundle builder for matched imported files.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries
