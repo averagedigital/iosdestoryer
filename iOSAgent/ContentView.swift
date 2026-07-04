@@ -7,6 +7,11 @@ struct ContentView: View {
   private let registry = ToolRegistry.defaultRegistry()
   private let commandRouter = AgentCommandRouter()
   @State private var message = ""
+  @State private var chatItems: [ChatTranscriptItem] = [
+    .assistant(
+      "Ask me to work with imported files, photos, contacts, calendar items, OCR, audio, or app shortcuts. I will preview risky changes first."
+    )
+  ]
   @State private var auditLog = AuditLog()
   @State private var isImportingFile = false
   @State private var isImportingFolder = false
@@ -82,7 +87,7 @@ struct ContentView: View {
   var body: some View {
     NavigationStack {
       TabView {
-        ChatScreen(message: $message, onSendTapped: sendMessage)
+        ChatScreen(items: chatItems, message: $message, onSendTapped: sendMessage)
           .tabItem { Label("Chat", systemImage: "bubble.left.and.bubble.right") }
 
         ScrollView {
@@ -528,10 +533,13 @@ struct ContentView: View {
     let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !text.isEmpty else { return }
 
+    chatItems.append(.user(text))
     auditLog.record(toolName: "agent.chat", summary: text, status: .succeeded)
     if let route = commandRouter.route(text) {
+      chatItems.append(.tool(toolName: route.toolName, request: text, status: "Queued"))
       runAgentRoute(route, message: text)
     } else {
+      chatItems.append(.assistant("No local tool matched."))
       auditLog.record(
         toolName: "agent.route", summary: "No local tool matched.", status: .failed)
     }
@@ -1451,7 +1459,34 @@ private struct ChatBubble: View {
   }
 }
 
+private struct ChatTranscriptItem: Identifiable {
+  enum Kind {
+    case assistant
+    case user
+    case tool
+  }
+
+  let id = UUID()
+  let kind: Kind
+  let title: String
+  let body: String
+  let status: String
+
+  static func assistant(_ text: String) -> ChatTranscriptItem {
+    ChatTranscriptItem(kind: .assistant, title: "Agent", body: text, status: "")
+  }
+
+  static func user(_ text: String) -> ChatTranscriptItem {
+    ChatTranscriptItem(kind: .user, title: "You", body: text, status: "")
+  }
+
+  static func tool(toolName: String, request: String, status: String) -> ChatTranscriptItem {
+    ChatTranscriptItem(kind: .tool, title: toolName, body: request, status: status)
+  }
+}
+
 private struct ChatScreen: View {
+  let items: [ChatTranscriptItem]
   @Binding var message: String
   let onSendTapped: () -> Void
 
@@ -1459,10 +1494,16 @@ private struct ChatScreen: View {
     VStack(spacing: 0) {
       ScrollView {
         LazyVStack(alignment: .leading, spacing: 14) {
-          ChatBubble(
-            text:
-              "Ask me to work with imported files, photos, contacts, calendar items, OCR, audio, or app shortcuts. I will preview risky changes first.",
-            isUser: false)
+          ForEach(items) { item in
+            switch item.kind {
+            case .assistant:
+              ChatBubble(text: item.body, isUser: false)
+            case .user:
+              ChatBubble(text: item.body, isUser: true)
+            case .tool:
+              ToolCallCard(item: item)
+            }
+          }
         }
         .padding()
       }
@@ -1479,6 +1520,32 @@ private struct ChatScreen: View {
       .padding()
       .background(.regularMaterial)
     }
+  }
+}
+
+private struct ToolCallCard: View {
+  let item: ChatTranscriptItem
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack {
+        Text(item.title)
+          .font(.caption.monospaced().weight(.semibold))
+        Spacer()
+        Text(item.status)
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.secondary)
+      }
+      Text("Requested: \(item.body)")
+        .font(.caption)
+      Text("Source: app-local tool registry")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+    .padding(12)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(Color.blue.opacity(0.08))
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
