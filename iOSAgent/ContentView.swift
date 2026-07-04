@@ -2179,6 +2179,11 @@ private struct PrivacySection: View {
     VStack(alignment: .leading, spacing: 8) {
       Text("Privacy")
         .font(.headline)
+      HStack(spacing: 8) {
+        AgentStatusPill(text: "Local data", systemImage: "iphone")
+        AgentStatusPill(text: "No remote model", systemImage: "network.slash")
+        AgentStatusPill(text: "No app scraping", systemImage: "hand.raised")
+      }
       Text(
         "Local-first: imported files, shared items, index chunks, recordings, and audit entries stay in this app unless you export or share them."
       )
