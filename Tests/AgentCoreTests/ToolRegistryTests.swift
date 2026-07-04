@@ -42,6 +42,11 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "reminders.complete"))
     XCTAssertNotNil(registry.tool(named: "notify.schedule"))
     XCTAssertNotNil(registry.tool(named: "notify.cancel"))
+    XCTAssertNotNil(registry.tool(named: "share.import_text"))
+    XCTAssertNotNil(registry.tool(named: "share.import_url"))
+    XCTAssertNotNil(registry.tool(named: "share.import_file"))
+    XCTAssertNotNil(registry.tool(named: "share.import_image"))
+    XCTAssertNotNil(registry.tool(named: "share.list_inbox"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }

@@ -20,6 +20,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `contacts.permission_status`, `contacts.search`, `contacts.create`, `contacts.update_with_preview`, `contacts.delete_with_preview`, `contacts.find_duplicate_candidates`, and `contacts.merge_preview` use Contacts after explicit authorization.
 - `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - `notify.schedule` and `notify.cancel` use UserNotifications after explicit permission.
+- `share.import_text`, `share.import_url`, `share.import_file`, `share.import_image`, and `share.list_inbox` model Share Extension ingestion into an app-owned inbox. The extension target still needs App Group wiring before other apps can send content into it.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries
@@ -29,6 +30,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - Contacts: `CNContactStore` reads and saves contacts, and `CNSaveRequest` batches contact changes; contact notes are not used because `CNContactNoteKey` requires an entitlement.
 - Calendar/reminders: EventKit `EKEventStore` searches events/reminders, saves requested items, and locates reminders by identifier before completion.
 - Notifications: UserNotifications schedules and cancels local notification requests after user permission.
+- Share: Share Extension ingestion is the supported path for content from other apps; the app reads only its own inbox, not third-party app containers.
 - OCR: Vision text recognition is available through `VNRecognizeTextRequest` / `RecognizeTextRequest`.
 - App Intents: App Intents expose this app's own actions to Shortcuts, Siri, Spotlight, widgets, and system experiences. They are not arbitrary third-party app control.
 
@@ -46,6 +48,7 @@ Sources checked:
 - https://developer.apple.com/documentation/eventkit/creating-events-and-reminders
 - https://developer.apple.com/documentation/usernotifications/unusernotificationcenter
 - https://developer.apple.com/documentation/usernotifications/untimeintervalnotificationtrigger
+- https://developer.apple.com/app-extensions/
 - https://developer.apple.com/documentation/vision/recognizing-text-in-images
 - https://developer.apple.com/documentation/appintents
 

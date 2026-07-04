@@ -93,6 +93,19 @@ public struct ToolRegistry: Sendable {
       AgentTool(
         name: "notify.cancel", domain: .notifications,
         appleFrameworks: ["UserNotifications"]),
+      AgentTool(
+        name: "share.import_text", domain: .share,
+        appleFrameworks: ["UIKit", "UniformTypeIdentifiers"]),
+      AgentTool(
+        name: "share.import_url", domain: .share,
+        appleFrameworks: ["UIKit", "UniformTypeIdentifiers"]),
+      AgentTool(
+        name: "share.import_file", domain: .share,
+        appleFrameworks: ["UIKit", "UniformTypeIdentifiers"]),
+      AgentTool(
+        name: "share.import_image", domain: .share,
+        appleFrameworks: ["UIKit", "UniformTypeIdentifiers"]),
+      AgentTool(name: "share.list_inbox", domain: .share, appleFrameworks: ["Foundation"]),
       AgentTool(name: "vision.ocr_image", domain: .vision, appleFrameworks: ["Vision"]),
       AgentTool(
         name: "app_intents.list_supported_actions", domain: .appIntents,
@@ -133,6 +146,7 @@ public enum ToolDomain: String, CaseIterable, Sendable {
   case contacts = "Contacts"
   case calendar = "Calendar"
   case notifications = "Notifications"
+  case share = "Share"
   case vision = "Vision"
   case appIntents = "App Intents"
 }

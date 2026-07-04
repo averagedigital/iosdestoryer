@@ -17,6 +17,8 @@ struct ContentView: View {
   @State private var readFileText = ""
   @State private var contextBundleMarkdown = ""
   @State private var pendingDeletePreview: FileDeletePreview?
+  @State private var sharedInboxItems: [SharedInboxItem] = []
+  @State private var shareInboxStatus = ""
   @State private var localIndex = LocalIndex(chunks: [], skippedFiles: [])
   @State private var indexQuery = ""
   @State private var indexResults: [IndexedChunk] = []
@@ -78,6 +80,10 @@ struct ContentView: View {
               onDeletePreviewTapped: previewDelete,
               onConfirmDeleteTapped: confirmDelete,
               onBundleTapped: buildContextBundle)
+            ShareInboxSection(
+              items: sharedInboxItems,
+              status: shareInboxStatus,
+              onRefreshTapped: refreshShareInbox)
             IndexSection(
               index: localIndex,
               query: $indexQuery,
@@ -320,6 +326,18 @@ struct ContentView: View {
       contextBundleMarkdown = ""
       auditLog.record(
         toolName: "files.context_bundle", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func refreshShareInbox() {
+    do {
+      sharedInboxItems = try ShareInboxService(inboxDirectory: shareInboxDirectory).listItems()
+      shareInboxStatus = "\(sharedInboxItems.count) item(s)"
+      auditLog.record(
+        toolName: "share.list_inbox", summary: shareInboxStatus, status: .succeeded)
+    } catch {
+      shareInboxStatus = error.localizedDescription
+      auditLog.record(toolName: "share.list_inbox", summary: shareInboxStatus, status: .failed)
     }
   }
 
@@ -751,6 +769,10 @@ struct ContentView: View {
     URL.documentsDirectory.appending(path: "Imports", directoryHint: .isDirectory)
   }
 
+  private var shareInboxDirectory: URL {
+    URL.documentsDirectory.appending(path: "ShareInbox", directoryHint: .isDirectory)
+  }
+
   private var contactDraft: ContactDraft {
     ContactDraft(
       givenName: contactGivenName,
@@ -828,6 +850,40 @@ private struct ToolSection: View {
           }
         }
         .padding(.vertical, 6)
+      }
+    }
+  }
+}
+
+private struct ShareInboxSection: View {
+  let items: [SharedInboxItem]
+  let status: String
+  let onRefreshTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Share Inbox")
+        .font(.headline)
+
+      Button(action: onRefreshTapped) {
+        Label("Refresh Shared Items", systemImage: "square.and.arrow.down")
+      }
+      .buttonStyle(.bordered)
+
+      if !status.isEmpty {
+        Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      ForEach(items) { item in
+        HStack {
+          Text(item.kind.rawValue)
+            .font(.caption.monospaced())
+          Text(item.url.lastPathComponent)
+            .lineLimit(1)
+        }
+        .font(.caption)
       }
     }
   }
