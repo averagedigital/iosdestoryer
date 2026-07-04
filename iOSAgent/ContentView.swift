@@ -6,10 +6,12 @@ struct ContentView: View {
   @State private var message = ""
   @State private var auditLog = AuditLog()
   @State private var isImportingFile = false
+  @State private var isImportingOCRImage = false
   @State private var importedFileName: String?
   @State private var fileSearchQuery = ""
   @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
   @State private var contextBundleMarkdown = ""
+  @State private var ocrText = ""
 
   var body: some View {
     NavigationStack {
@@ -28,6 +30,9 @@ struct ContentView: View {
               onImportTapped: { isImportingFile = true },
               onSearchTapped: searchImportedFiles,
               onBundleTapped: buildContextBundle)
+            VisionSection(
+              ocrText: ocrText,
+              onOCRImageTapped: { isImportingOCRImage = true })
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -57,6 +62,12 @@ struct ContentView: View {
         allowedContentTypes: [.data],
         allowsMultipleSelection: false,
         onCompletion: handleFileImport
+      )
+      .fileImporter(
+        isPresented: $isImportingOCRImage,
+        allowedContentTypes: [.image],
+        allowsMultipleSelection: false,
+        onCompletion: handleOCRImageImport
       )
     }
   }
@@ -110,6 +121,37 @@ struct ContentView: View {
       contextBundleMarkdown = ""
       auditLog.record(
         toolName: "files.context_bundle", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func handleOCRImageImport(_ result: Result<[URL], Error>) {
+    switch result {
+    case .success(let urls):
+      guard let url = urls.first else { return }
+      let didStartAccess = url.startAccessingSecurityScopedResource()
+      defer {
+        if didStartAccess {
+          url.stopAccessingSecurityScopedResource()
+        }
+      }
+
+      do {
+        let imageData = try Data(contentsOf: url)
+        let result = try OCRService().recognizeText(in: imageData)
+        ocrText = result.text
+        auditLog.record(
+          toolName: "vision.ocr_image",
+          summary: "\(result.observations.count) text observations",
+          status: .succeeded)
+      } catch {
+        ocrText = ""
+        auditLog.record(
+          toolName: "vision.ocr_image", summary: error.localizedDescription, status: .failed)
+      }
+    case .failure(let error):
+      ocrText = ""
+      auditLog.record(
+        toolName: "vision.ocr_image", summary: error.localizedDescription, status: .failed)
     }
   }
 
@@ -220,6 +262,33 @@ private struct FileImportSection: View {
       if !contextBundleMarkdown.isEmpty {
         Text(contextBundleMarkdown)
           .font(.caption.monospaced())
+          .lineLimit(8)
+          .padding(8)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.secondary.opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      }
+    }
+  }
+}
+
+private struct VisionSection: View {
+  let ocrText: String
+  let onOCRImageTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Vision")
+        .font(.headline)
+
+      Button(action: onOCRImageTapped) {
+        Label("OCR Image", systemImage: "text.viewfinder")
+      }
+      .buttonStyle(.bordered)
+
+      if !ocrText.isEmpty {
+        Text(ocrText)
+          .font(.caption)
           .lineLimit(8)
           .padding(8)
           .frame(maxWidth: .infinity, alignment: .leading)
