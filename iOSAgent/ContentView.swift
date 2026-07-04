@@ -3234,6 +3234,15 @@ private struct AuditSection: View {
       Text("Audit")
         .font(.headline)
 
+      HStack(spacing: 8) {
+        AgentStatusPill(text: "\(entries.count) entries", systemImage: "list.bullet.clipboard")
+          .monospacedDigit()
+        AgentStatusPill(text: "\(failedCount) failed", systemImage: "xmark.octagon")
+          .monospacedDigit()
+        AgentStatusPill(text: "\(confirmationCount) confirm", systemImage: "checkmark.shield")
+          .monospacedDigit()
+      }
+
       if !persistenceStatus.isEmpty {
         Text(persistenceStatus)
           .font(.caption)
@@ -3245,10 +3254,30 @@ private struct AuditSection: View {
           .foregroundStyle(.secondary)
       } else {
         ForEach(entries) { entry in
-          Text("\(entry.toolName): \(entry.summary)")
-            .font(.caption)
+          VStack(alignment: .leading, spacing: 2) {
+            HStack {
+              Text(entry.toolName)
+                .font(.caption.monospaced().weight(.semibold))
+              Spacer()
+              Text(entry.status.rawValue)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            }
+            Text(entry.summary)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+          .padding(.vertical, 4)
         }
       }
     }
+  }
+
+  private var failedCount: Int {
+    entries.filter { $0.status == .failed }.count
+  }
+
+  private var confirmationCount: Int {
+    entries.filter { $0.status == .needsConfirmation }.count
   }
 }
