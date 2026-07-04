@@ -120,6 +120,10 @@ public struct ToolRegistry: Sendable {
         appleFrameworks: ["Vision", "PDFKit", "UniformTypeIdentifiers"]),
       AgentTool(
         name: "vision.detect_barcodes_if_easy", domain: .vision, appleFrameworks: ["Vision"]),
+      AgentTool(
+        name: "camera.permission_status", domain: .vision, appleFrameworks: ["AVFoundation"]),
+      AgentTool(
+        name: "camera.permission", domain: .vision, appleFrameworks: ["AVFoundation"]),
       AgentTool(name: "camera.take_photo", domain: .vision, appleFrameworks: ["UIKit"]),
       AgentTool(
         name: "camera.scan_document", domain: .vision,

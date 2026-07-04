@@ -1,5 +1,39 @@
 import Foundation
 
+#if canImport(AVFoundation)
+  import AVFoundation
+#endif
+
+public struct CameraPermissionService {
+  private let provider: any CameraPermissionProviding
+
+  public init(provider: any CameraPermissionProviding = SystemCameraPermissionProvider()) {
+    self.provider = provider
+  }
+
+  public func permissionStatus() -> CameraPermissionStatus {
+    provider.permissionStatus()
+  }
+
+  public func requestPermission() async -> Bool {
+    await provider.requestPermission()
+  }
+}
+
+public protocol CameraPermissionProviding {
+  func permissionStatus() -> CameraPermissionStatus
+  func requestPermission() async -> Bool
+}
+
+public enum CameraPermissionStatus: String, Equatable, Sendable {
+  case notDetermined
+  case restricted
+  case denied
+  case authorized
+  case unknown
+  case unavailable
+}
+
 public struct CameraCaptureService {
   private let directory: URL
 
@@ -66,3 +100,46 @@ extension CameraCaptureServiceError: LocalizedError {
     }
   }
 }
+
+#if canImport(AVFoundation)
+  public struct SystemCameraPermissionProvider: CameraPermissionProviding {
+    public init() {}
+
+    public func permissionStatus() -> CameraPermissionStatus {
+      CameraPermissionStatus(AVCaptureDevice.authorizationStatus(for: .video))
+    }
+
+    public func requestPermission() async -> Bool {
+      await AVCaptureDevice.requestAccess(for: .video)
+    }
+  }
+
+  extension CameraPermissionStatus {
+    fileprivate init(_ status: AVAuthorizationStatus) {
+      switch status {
+      case .notDetermined:
+        self = .notDetermined
+      case .restricted:
+        self = .restricted
+      case .denied:
+        self = .denied
+      case .authorized:
+        self = .authorized
+      @unknown default:
+        self = .unknown
+      }
+    }
+  }
+#else
+  public struct SystemCameraPermissionProvider: CameraPermissionProviding {
+    public init() {}
+
+    public func permissionStatus() -> CameraPermissionStatus {
+      .unavailable
+    }
+
+    public func requestPermission() async -> Bool {
+      false
+    }
+  }
+#endif

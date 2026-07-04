@@ -67,6 +67,8 @@ final class ToolRegistryTests: XCTestCase {
       "vision.ocr_image",
       "vision.ocr_pdf_or_file_image",
       "vision.detect_barcodes_if_easy",
+      "camera.permission_status",
+      "camera.permission",
       "camera.take_photo",
       "camera.scan_document",
       "app_intents.list_supported_actions",
@@ -126,6 +128,8 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "app.open_url"))
     XCTAssertNotNil(registry.tool(named: "app.open_deeplink"))
     XCTAssertNotNil(registry.tool(named: "camera.take_photo"))
+    XCTAssertNotNil(registry.tool(named: "camera.permission_status"))
+    XCTAssertNotNil(registry.tool(named: "camera.permission"))
     XCTAssertNotNil(registry.tool(named: "camera.scan_document"))
     XCTAssertNotNil(registry.tool(named: "vision.ocr_pdf_or_file_image"))
     XCTAssertNotNil(registry.tool(named: "vision.detect_barcodes_if_easy"))

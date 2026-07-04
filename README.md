@@ -20,7 +20,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `index.add_source`, `index.rebuild`, `index.search`, `index.get_chunks`, and `index.export_context_bundle` build a local chunk index from app-managed UTF-8 imports.
 - `vision.ocr_image` OCR over image data through Apple's Vision framework.
 - `vision.ocr_pdf_or_file_image` OCR over user-picked image/PDF files; PDFs render locally through PDFKit before Vision OCR.
-- `camera.take_photo`, `camera.scan_document`, and `vision.detect_barcodes_if_easy` use foreground UIKit/VisionKit/Vision flows only.
+- `camera.permission_status`, `camera.permission`, `camera.take_photo`, `camera.scan_document`, and `vision.detect_barcodes_if_easy` use foreground AVFoundation/UIKit/VisionKit/Vision flows only.
 - `photos.permission_status` inspects and explicitly requests PhotoKit authorization without reading assets.
 - `photos.list_assets`, `photos.find_screenshots`, `photos.find_documents`, `photos.classify_candidates`, `photos.create_album`, `photos.add_to_album`, `photos.favorite`, `photos.remove_from_album_with_preview`, `photos.hide_with_preview`, and `photos.delete_with_preview` use PhotoKit after Photos authorization.
 - Photo destructive tools require a preview first, then a separate Confirm action applies the stored preview through PhotoKit change requests.

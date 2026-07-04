@@ -3,6 +3,20 @@ import XCTest
 @testable import AgentCore
 
 final class CameraCaptureServiceTests: XCTestCase {
+  func testReadsCameraPermissionStatusThroughProvider() {
+    let service = CameraPermissionService(provider: StubCameraPermissionProvider())
+
+    XCTAssertEqual(service.permissionStatus(), .authorized)
+  }
+
+  func testRequestsCameraPermissionThroughProvider() async {
+    let service = CameraPermissionService(provider: StubCameraPermissionProvider())
+
+    let granted = await service.requestPermission()
+
+    XCTAssertTrue(granted)
+  }
+
   func testSavesCapturedPhotoData() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     let service = CameraCaptureService(directory: directory)
@@ -31,5 +45,15 @@ final class CameraCaptureServiceTests: XCTestCase {
     XCTAssertThrowsError(try service.savePhoto(Data(), fileName: "photo.jpg")) { error in
       XCTAssertEqual(error as? CameraCaptureServiceError, .emptyImageData)
     }
+  }
+}
+
+private struct StubCameraPermissionProvider: CameraPermissionProviding {
+  func permissionStatus() -> CameraPermissionStatus {
+    .authorized
+  }
+
+  func requestPermission() async -> Bool {
+    true
   }
 }

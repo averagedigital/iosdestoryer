@@ -128,6 +128,8 @@ struct ContentView: View {
               cameraStatus: cameraStatus,
               onOCRImageTapped: { isImportingOCRImage = true },
               onBarcodeImageTapped: { isImportingBarcodeImage = true },
+              onCameraStatusTapped: checkCameraPermission,
+              onCameraPermissionTapped: requestCameraPermission,
               onTakePhotoTapped: takePhoto,
               onScanDocumentTapped: scanDocument)
             PhotosSection(
@@ -711,6 +713,23 @@ struct ContentView: View {
       auditLog.record(
         toolName: "vision.detect_barcodes_if_easy", summary: error.localizedDescription,
         status: .failed)
+    }
+  }
+
+  private func checkCameraPermission() {
+    let status = CameraPermissionService().permissionStatus()
+    cameraStatus = status.rawValue
+    auditLog.record(
+      toolName: "camera.permission_status", summary: cameraStatus, status: .succeeded)
+  }
+
+  private func requestCameraPermission() {
+    Task {
+      let granted = await CameraPermissionService().requestPermission()
+      cameraStatus = granted ? "authorized" : "denied"
+      auditLog.record(
+        toolName: "camera.permission", summary: cameraStatus,
+        status: granted ? .succeeded : .failed)
     }
   }
 
@@ -2057,6 +2076,8 @@ private struct VisionSection: View {
   let cameraStatus: String
   let onOCRImageTapped: () -> Void
   let onBarcodeImageTapped: () -> Void
+  let onCameraStatusTapped: () -> Void
+  let onCameraPermissionTapped: () -> Void
   let onTakePhotoTapped: () -> Void
   let onScanDocumentTapped: () -> Void
 
@@ -2075,6 +2096,13 @@ private struct VisionSection: View {
           Label("Barcode", systemImage: "barcode.viewfinder")
         }
         .buttonStyle(.bordered)
+      }
+
+      HStack {
+        Button("Camera Status", action: onCameraStatusTapped)
+          .buttonStyle(.bordered)
+        Button("Camera Request", action: onCameraPermissionTapped)
+          .buttonStyle(.bordered)
       }
 
       HStack {
