@@ -21,13 +21,15 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `vision.ocr_image` OCR over image data through Apple's Vision framework.
 - `vision.ocr_pdf_or_file_image` OCR over user-picked image/PDF files; PDFs render locally through PDFKit before Vision OCR.
 - `camera.take_photo`, `camera.scan_document`, and `vision.detect_barcodes_if_easy` use foreground UIKit/VisionKit/Vision flows only.
-- `photos.permission_status` inspectable PhotoKit authorization status without reading assets.
+- `photos.permission_status` inspects and explicitly requests PhotoKit authorization without reading assets.
 - `photos.list_assets`, `photos.find_screenshots`, `photos.find_documents`, `photos.classify_candidates`, `photos.create_album`, `photos.add_to_album`, `photos.favorite`, `photos.remove_from_album_with_preview`, `photos.hide_with_preview`, and `photos.delete_with_preview` use PhotoKit after Photos authorization.
 - Photo destructive tools require a preview first, then a separate Confirm action applies the stored preview through PhotoKit change requests.
-- `contacts.permission_status`, `contacts.search`, `contacts.create`, `contacts.update_with_preview`, `contacts.delete_with_preview`, `contacts.find_duplicate_candidates`, and `contacts.merge_preview` use Contacts after explicit authorization.
+- `contacts.permission_status` inspects and explicitly requests Contacts authorization.
+- `contacts.search`, `contacts.create`, `contacts.update_with_preview`, `contacts.delete_with_preview`, `contacts.find_duplicate_candidates`, and `contacts.merge_preview` use Contacts after explicit authorization.
 - Contact update/delete tools require a preview first, then a separate Confirm action applies the stored preview through Contacts save requests.
 - Contact merge requires a preview first, then Confirm updates the primary contact and removes duplicate contacts in a Contacts save request.
-- `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
+- `calendar.permission_status` and `reminders.permission_status` inspect and explicitly request EventKit authorization.
+- `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - Calendar event update/delete and reminder update tools require a preview first, then a separate Confirm action applies the stored preview through EventKit save/remove requests.
 - `notify.permission`, `notify.schedule`, and `notify.cancel` use UserNotifications with explicit permission before scheduling.
 - `AgentShareExtension` receives shared text, URLs, images, and files through the iOS share sheet, then writes them into the shared App Group inbox for `share.list_inbox`.
@@ -92,5 +94,12 @@ Sources checked:
 - `iOSAgent/`: SwiftUI app target.
 - `Sources/AgentCore/`: testable agent contracts and local tool metadata.
 - `Tests/AgentCoreTests/`: narrow behavior tests.
+
+## Validation Gaps
+
+- Real-device permission prompts and limited-access behavior still need manual validation for Photos, Contacts, Calendar, Reminders, Camera, Microphone, Speech, and Notifications.
+- Share Extension ingestion must be checked from the iOS share sheet on a simulator/device.
+- App Intents and user-configured Shortcut execution must be checked from Shortcuts/Siri surfaces.
+- UI has build coverage, but no simulator screenshot pass has been recorded yet.
 
 Next feature should be a completion audit against the objective matrix, then only fill verified gaps.
