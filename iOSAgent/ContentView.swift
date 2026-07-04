@@ -1,9 +1,12 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
   private let registry = ToolRegistry.defaultRegistry()
   @State private var message = ""
   @State private var auditLog = AuditLog()
+  @State private var isImportingFile = false
+  @State private var importedFileName: String?
 
   var body: some View {
     NavigationStack {
@@ -12,8 +15,11 @@ struct ContentView: View {
           LazyVStack(alignment: .leading, spacing: 14) {
             ChatBubble(
               text:
-                "Ask me to work with files, photos, contacts, calendar items, OCR, or your app shortcuts. I will preview risky changes first.",
+                "Ask me to work with a file you import from Files, photos you choose, contacts, calendar items, OCR, or your app shortcuts. I will preview risky changes first.",
               isUser: false)
+            FileImportSection(
+              importedFileName: importedFileName,
+              onImportTapped: { isImportingFile = true })
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -38,7 +44,37 @@ struct ContentView: View {
         .background(.regularMaterial)
       }
       .navigationTitle("iOS Agent")
+      .fileImporter(
+        isPresented: $isImportingFile,
+        allowedContentTypes: [.data],
+        allowsMultipleSelection: false,
+        onCompletion: handleFileImport
+      )
     }
+  }
+
+  private func handleFileImport(_ result: Result<[URL], Error>) {
+    switch result {
+    case .success(let urls):
+      guard let url = urls.first else { return }
+      do {
+        let imported = try FileImportService(importsDirectory: importsDirectory)
+          .importPickedFile(from: url, auditLog: &auditLog)
+        importedFileName = imported.originalFilename
+      } catch {
+        importedFileName = nil
+        auditLog.record(
+          toolName: "files.pick_file", summary: error.localizedDescription, status: .failed)
+      }
+    case .failure(let error):
+      importedFileName = nil
+      auditLog.record(
+        toolName: "files.pick_file", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private var importsDirectory: URL {
+    URL.documentsDirectory.appending(path: "Imports", directoryHint: .isDirectory)
   }
 }
 
@@ -83,6 +119,33 @@ private struct ToolSection: View {
           }
         }
         .padding(.vertical, 6)
+      }
+    }
+  }
+}
+
+private struct FileImportSection: View {
+  let importedFileName: String?
+  let onImportTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Files")
+        .font(.headline)
+
+      Text("Import a document from the Files app to grant access only to the item you pick.")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+
+      Button(action: onImportTapped) {
+        Label(importedFileName ?? "Import File", systemImage: "doc.badge.plus")
+      }
+      .buttonStyle(.borderedProminent)
+
+      if let importedFileName {
+        Text("Selected: \(importedFileName)")
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
     }
   }
