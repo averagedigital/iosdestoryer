@@ -12,6 +12,7 @@ struct ContentView: View {
   @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
   @State private var contextBundleMarkdown = ""
   @State private var ocrText = ""
+  @State private var photoPermissionStatus = "Not Checked"
 
   var body: some View {
     NavigationStack {
@@ -33,6 +34,9 @@ struct ContentView: View {
             VisionSection(
               ocrText: ocrText,
               onOCRImageTapped: { isImportingOCRImage = true })
+            PhotosSection(
+              status: photoPermissionStatus,
+              onCheckTapped: checkPhotoPermission)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -153,6 +157,13 @@ struct ContentView: View {
       auditLog.record(
         toolName: "vision.ocr_image", summary: error.localizedDescription, status: .failed)
     }
+  }
+
+  private func checkPhotoPermission() {
+    let status = PhotoPermissionService().currentStatus()
+    photoPermissionStatus = status.displayName
+    auditLog.record(
+      toolName: "photos.permission_status", summary: status.rawValue, status: .succeeded)
   }
 
   private var importsDirectory: URL {
@@ -294,6 +305,29 @@ private struct VisionSection: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .background(Color.secondary.opacity(0.08))
           .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+      }
+    }
+  }
+}
+
+private struct PhotosSection: View {
+  let status: String
+  let onCheckTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Photos")
+        .font(.headline)
+
+      HStack {
+        Button(action: onCheckTapped) {
+          Label("Check Permission", systemImage: "photo.on.rectangle")
+        }
+        .buttonStyle(.bordered)
+
+        Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
     }
   }
