@@ -26,6 +26,8 @@ struct ContentView: View {
   @State private var photoAssets: [PhotoAssetSummary] = []
   @State private var photoClassifications: [PhotoClassificationResult] = []
   @State private var contactPermissionStatus = "Not Checked"
+  @State private var contactQuery = ""
+  @State private var contactResults: [ContactSummary] = []
   @State private var calendarPermissionStatus = "Not Checked"
   @State private var reminderPermissionStatus = "Not Checked"
 
@@ -78,7 +80,11 @@ struct ContentView: View {
               onClassifyTapped: classifyPhotoCandidates)
             ContactsSection(
               status: contactPermissionStatus,
-              onCheckTapped: checkContactPermission)
+              query: $contactQuery,
+              contacts: contactResults,
+              onCheckTapped: checkContactPermission,
+              onSearchTapped: searchContacts,
+              onDuplicatesTapped: findDuplicateContacts)
             EventKitSection(
               calendarStatus: calendarPermissionStatus,
               reminderStatus: reminderPermissionStatus,
@@ -365,6 +371,34 @@ struct ContentView: View {
     contactPermissionStatus = status.displayName
     auditLog.record(
       toolName: "contacts.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func searchContacts() {
+    do {
+      contactResults = try ContactLibraryService().search(contactQuery)
+      auditLog.record(
+        toolName: "contacts.search", summary: "\(contactResults.count) contacts",
+        status: .succeeded)
+    } catch {
+      contactResults = []
+      auditLog.record(
+        toolName: "contacts.search", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func findDuplicateContacts() {
+    do {
+      contactResults = try ContactLibraryService().findDuplicateCandidates()
+      auditLog.record(
+        toolName: "contacts.find_duplicate_candidates",
+        summary: "\(contactResults.count) candidates",
+        status: .succeeded)
+    } catch {
+      contactResults = []
+      auditLog.record(
+        toolName: "contacts.find_duplicate_candidates", summary: error.localizedDescription,
+        status: .failed)
+    }
   }
 
   private func checkCalendarPermission() {
@@ -724,7 +758,11 @@ private struct PhotosSection: View {
 
 private struct ContactsSection: View {
   let status: String
+  @Binding var query: String
+  let contacts: [ContactSummary]
   let onCheckTapped: () -> Void
+  let onSearchTapped: () -> Void
+  let onDuplicatesTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -740,6 +778,28 @@ private struct ContactsSection: View {
         Text(status)
           .font(.caption)
           .foregroundStyle(.secondary)
+      }
+
+      TextField("Search contacts", text: $query)
+        .textFieldStyle(.roundedBorder)
+
+      HStack {
+        Button("Search", action: onSearchTapped)
+          .buttonStyle(.bordered)
+        Button("Duplicates", action: onDuplicatesTapped)
+          .buttonStyle(.bordered)
+      }
+
+      ForEach(contacts) { contact in
+        VStack(alignment: .leading, spacing: 2) {
+          Text(contact.displayName.isEmpty ? contact.organizationName : contact.displayName)
+            .font(.caption.weight(.semibold))
+            .lineLimit(1)
+          Text((contact.emailAddresses + contact.phoneNumbers).joined(separator: " / "))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
       }
     }
   }

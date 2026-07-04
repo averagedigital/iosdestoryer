@@ -50,6 +50,10 @@ public struct ToolRegistry: Sendable {
         isDestructive: true),
       AgentTool(
         name: "contacts.permission_status", domain: .contacts, appleFrameworks: ["Contacts"]),
+      AgentTool(name: "contacts.search", domain: .contacts, appleFrameworks: ["Contacts"]),
+      AgentTool(
+        name: "contacts.find_duplicate_candidates", domain: .contacts,
+        appleFrameworks: ["Contacts"]),
       AgentTool(
         name: "contacts.delete_with_preview", domain: .contacts, appleFrameworks: ["Contacts"],
         isDestructive: true),

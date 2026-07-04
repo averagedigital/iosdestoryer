@@ -17,6 +17,7 @@
 		100000000000000000000008 /* OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000019 /* OCRService.swift */; };
 		100000000000000000000009 /* PhotoPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000024 /* PhotoPermissionService.swift */; };
 		100000000000000000000092 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* PhotoLibraryService.swift */; };
+		100000000000000000000094 /* ContactLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000095 /* ContactLibraryService.swift */; };
 		100000000000000000000025 /* ContactPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* ContactPermissionService.swift */; };
 		100000000000000000000027 /* EventPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* EventPermissionService.swift */; };
 		100000000000000000000029 /* FileReadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002A /* FileReadService.swift */; };
@@ -41,6 +42,7 @@
 		100000000000000000000018 /* ContextBundleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextBundleService.swift; sourceTree = "<group>"; };
 		100000000000000000000019 /* OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRService.swift; sourceTree = "<group>"; };
 		100000000000000000000093 /* PhotoLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryService.swift; sourceTree = "<group>"; };
+		100000000000000000000095 /* ContactLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactLibraryService.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* PhotoPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* ContactPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* EventPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPermissionService.swift; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000013 /* AuditLog.swift */,
+				100000000000000000000095 /* ContactLibraryService.swift */,
 				100000000000000000000026 /* ContactPermissionService.swift */,
 				100000000000000000000018 /* ContextBundleService.swift */,
 				100000000000000000000028 /* EventPermissionService.swift */,
@@ -177,6 +180,7 @@
 				100000000000000000000001 /* iOSAgentApp.swift in Sources */,
 				100000000000000000000002 /* ContentView.swift in Sources */,
 				100000000000000000000003 /* AuditLog.swift in Sources */,
+				100000000000000000000094 /* ContactLibraryService.swift in Sources */,
 				100000000000000000000025 /* ContactPermissionService.swift in Sources */,
 				100000000000000000000007 /* ContextBundleService.swift in Sources */,
 				100000000000000000000027 /* EventPermissionService.swift in Sources */,

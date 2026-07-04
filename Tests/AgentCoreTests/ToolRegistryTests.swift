@@ -22,6 +22,8 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "photos.find_screenshots"))
     XCTAssertNotNil(registry.tool(named: "photos.find_documents"))
     XCTAssertNotNil(registry.tool(named: "photos.classify_candidates"))
+    XCTAssertNotNil(registry.tool(named: "contacts.search"))
+    XCTAssertNotNil(registry.tool(named: "contacts.find_duplicate_candidates"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }
