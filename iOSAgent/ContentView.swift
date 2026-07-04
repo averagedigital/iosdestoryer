@@ -14,6 +14,8 @@ struct ContentView: View {
   @State private var ocrText = ""
   @State private var photoPermissionStatus = "Not Checked"
   @State private var contactPermissionStatus = "Not Checked"
+  @State private var calendarPermissionStatus = "Not Checked"
+  @State private var reminderPermissionStatus = "Not Checked"
 
   var body: some View {
     NavigationStack {
@@ -41,6 +43,11 @@ struct ContentView: View {
             ContactsSection(
               status: contactPermissionStatus,
               onCheckTapped: checkContactPermission)
+            EventKitSection(
+              calendarStatus: calendarPermissionStatus,
+              reminderStatus: reminderPermissionStatus,
+              onCalendarTapped: checkCalendarPermission,
+              onRemindersTapped: checkReminderPermission)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -175,6 +182,20 @@ struct ContentView: View {
     contactPermissionStatus = status.displayName
     auditLog.record(
       toolName: "contacts.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func checkCalendarPermission() {
+    let status = EventPermissionService().currentStatus(for: .calendar)
+    calendarPermissionStatus = status.displayName
+    auditLog.record(
+      toolName: "calendar.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func checkReminderPermission() {
+    let status = EventPermissionService().currentStatus(for: .reminders)
+    reminderPermissionStatus = status.displayName
+    auditLog.record(
+      toolName: "reminders.permission_status", summary: status.rawValue, status: .succeeded)
   }
 
   private var importsDirectory: URL {
@@ -360,6 +381,42 @@ private struct ContactsSection: View {
         .buttonStyle(.bordered)
 
         Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+}
+
+private struct EventKitSection: View {
+  let calendarStatus: String
+  let reminderStatus: String
+  let onCalendarTapped: () -> Void
+  let onRemindersTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Calendar")
+        .font(.headline)
+
+      HStack {
+        Button(action: onCalendarTapped) {
+          Label("Calendar", systemImage: "calendar")
+        }
+        .buttonStyle(.bordered)
+
+        Text(calendarStatus)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      HStack {
+        Button(action: onRemindersTapped) {
+          Label("Reminders", systemImage: "checklist")
+        }
+        .buttonStyle(.bordered)
+
+        Text(reminderStatus)
           .font(.caption)
           .foregroundStyle(.secondary)
       }

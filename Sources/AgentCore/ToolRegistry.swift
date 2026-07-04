@@ -33,6 +33,8 @@ public struct ToolRegistry: Sendable {
         isDestructive: true),
       AgentTool(
         name: "calendar.permission_status", domain: .calendar, appleFrameworks: ["EventKit"]),
+      AgentTool(
+        name: "reminders.permission_status", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "vision.ocr_image", domain: .vision, appleFrameworks: ["Vision"]),
       AgentTool(
         name: "app_intents.list_supported_actions", domain: .appIntents,

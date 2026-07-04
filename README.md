@@ -13,6 +13,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `vision.ocr_image` OCR over user-picked image files through Apple's Vision framework.
 - `photos.permission_status` inspectable PhotoKit authorization status without reading assets.
 - `contacts.permission_status` inspectable Contacts authorization status without reading contacts.
+- `calendar.permission_status` and `reminders.permission_status` inspectable EventKit authorization status without reading events or reminders.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries
