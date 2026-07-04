@@ -94,6 +94,12 @@ struct ContentView: View {
 
         ScrollView {
           LazyVStack(alignment: .leading, spacing: 14) {
+            ScreenIntro(
+              title: "Sources",
+              subtitle: "Permission-based imports, device domains, and local ingestion.",
+              systemImage: "folder.badge.gearshape"
+            )
+            .agentPanel()
             FileImportSection(
               importedFileName: importedFileName,
               allowedSources: allowedSources,
@@ -239,6 +245,12 @@ struct ContentView: View {
 
         ScrollView {
           LazyVStack(alignment: .leading, spacing: 14) {
+            ScreenIntro(
+              title: "Index",
+              subtitle: "Local chunks and context bundles built only from app-managed content.",
+              systemImage: "doc.text.magnifyingglass"
+            )
+            .agentPanel()
             IndexSection(
               index: localIndex,
               query: $indexQuery,
@@ -256,15 +268,29 @@ struct ContentView: View {
         .tabItem { Label("Index", systemImage: "doc.text.magnifyingglass") }
 
         ScrollView {
-          AuditSection(entries: auditLog.entries, persistenceStatus: auditPersistenceStatus)
-            .padding()
+          LazyVStack(alignment: .leading, spacing: 14) {
+            ScreenIntro(
+              title: "Audit",
+              subtitle: "Persistent local trace of agent tool calls and outcomes.",
+              systemImage: "list.bullet.clipboard"
+            )
             .agentPanel()
+            AuditSection(entries: auditLog.entries, persistenceStatus: auditPersistenceStatus)
+              .agentPanel()
+          }
+          .padding()
         }
         .background(AgentTheme.canvas.ignoresSafeArea())
         .tabItem { Label("Audit", systemImage: "list.bullet.clipboard") }
 
         ScrollView {
           LazyVStack(alignment: .leading, spacing: 14) {
+            ScreenIntro(
+              title: "Settings",
+              subtitle: "Privacy boundaries, app links, shortcuts, and local model checks.",
+              systemImage: "lock.shield"
+            )
+            .agentPanel()
             AppURLSection(
               urlString: $appURLString,
               deepLinkString: $appDeepLinkString,
@@ -1735,6 +1761,31 @@ private struct AgentStatusPill: View {
       .padding(.vertical, 6)
       .background(AgentTheme.field)
       .clipShape(Capsule())
+  }
+}
+
+private struct ScreenIntro: View {
+  let title: String
+  let subtitle: String
+  let systemImage: String
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 12) {
+      Image(systemName: systemImage)
+        .font(.title3.weight(.semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 34, height: 34)
+        .background(AgentTheme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 4) {
+        Text(title)
+          .font(.title3.weight(.semibold))
+        Text(subtitle)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
   }
 }
 
