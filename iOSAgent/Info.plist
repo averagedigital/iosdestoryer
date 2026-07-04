@@ -4,6 +4,8 @@
 <dict>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>iOS Agent uses calendar access to search events and create events you request.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>iOS Agent uses contacts access to search and create contacts you request.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>iOS Agent uses reminders access to search reminders and create reminders you request.</string>
 	<key>UILaunchScreen</key>

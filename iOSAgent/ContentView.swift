@@ -27,7 +27,12 @@ struct ContentView: View {
   @State private var photoClassifications: [PhotoClassificationResult] = []
   @State private var contactPermissionStatus = "Not Checked"
   @State private var contactQuery = ""
+  @State private var contactGivenName = "New"
+  @State private var contactFamilyName = "Contact"
+  @State private var contactEmail = ""
+  @State private var contactPhone = ""
   @State private var contactResults: [ContactSummary] = []
+  @State private var contactPreview: String = ""
   @State private var calendarPermissionStatus = "Not Checked"
   @State private var reminderPermissionStatus = "Not Checked"
   @State private var calendarQuery = ""
@@ -87,10 +92,19 @@ struct ContentView: View {
             ContactsSection(
               status: contactPermissionStatus,
               query: $contactQuery,
+              givenName: $contactGivenName,
+              familyName: $contactFamilyName,
+              email: $contactEmail,
+              phone: $contactPhone,
               contacts: contactResults,
+              preview: contactPreview,
               onCheckTapped: checkContactPermission,
               onSearchTapped: searchContacts,
-              onDuplicatesTapped: findDuplicateContacts)
+              onDuplicatesTapped: findDuplicateContacts,
+              onCreateTapped: createContact,
+              onUpdatePreviewTapped: previewContactUpdate,
+              onDeletePreviewTapped: previewContactDelete,
+              onMergePreviewTapped: previewContactMerge)
             EventKitSection(
               calendarStatus: calendarPermissionStatus,
               reminderStatus: reminderPermissionStatus,
@@ -392,11 +406,13 @@ struct ContentView: View {
   private func searchContacts() {
     do {
       contactResults = try ContactLibraryService().search(contactQuery)
+      contactPreview = ""
       auditLog.record(
         toolName: "contacts.search", summary: "\(contactResults.count) contacts",
         status: .succeeded)
     } catch {
       contactResults = []
+      contactPreview = ""
       auditLog.record(
         toolName: "contacts.search", summary: error.localizedDescription, status: .failed)
     }
@@ -405,6 +421,7 @@ struct ContentView: View {
   private func findDuplicateContacts() {
     do {
       contactResults = try ContactLibraryService().findDuplicateCandidates()
+      contactPreview = ""
       auditLog.record(
         toolName: "contacts.find_duplicate_candidates",
         summary: "\(contactResults.count) candidates",
@@ -415,6 +432,46 @@ struct ContentView: View {
         toolName: "contacts.find_duplicate_candidates", summary: error.localizedDescription,
         status: .failed)
     }
+  }
+
+  private func createContact() {
+    do {
+      let contact = try ContactLibraryService().create(contactDraft)
+      contactResults = [contact]
+      contactPreview = ""
+      auditLog.record(
+        toolName: "contacts.create", summary: contact.displayLabel, status: .succeeded)
+    } catch {
+      auditLog.record(
+        toolName: "contacts.create", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func previewContactUpdate() {
+    guard let contact = contactResults.first else { return }
+    let preview = ContactLibraryService().updatePreview(contact: contact, draft: contactDraft)
+    contactPreview = preview.summary
+    auditLog.record(
+      toolName: "contacts.update_with_preview", summary: preview.summary,
+      status: .needsConfirmation)
+  }
+
+  private func previewContactDelete() {
+    guard let contact = contactResults.first else { return }
+    let preview = ContactLibraryService().deletePreview(contact: contact)
+    contactPreview = preview.summary
+    auditLog.record(
+      toolName: "contacts.delete_with_preview", summary: preview.summary,
+      status: .needsConfirmation)
+  }
+
+  private func previewContactMerge() {
+    let preview = ContactLibraryService().mergePreview(contacts: contactResults)
+    guard let contact = preview.mergedContact else { return }
+    contactPreview =
+      "Merge \(preview.duplicateContactIDs.count) into \(contact.displayLabel)"
+    auditLog.record(
+      toolName: "contacts.merge_preview", summary: contactPreview, status: .needsConfirmation)
   }
 
   private func checkCalendarPermission() {
@@ -504,6 +561,15 @@ struct ContentView: View {
 
   private var importsDirectory: URL {
     URL.documentsDirectory.appending(path: "Imports", directoryHint: .isDirectory)
+  }
+
+  private var contactDraft: ContactDraft {
+    ContactDraft(
+      givenName: contactGivenName,
+      familyName: contactFamilyName,
+      organizationName: "",
+      phoneNumber: contactPhone,
+      emailAddress: contactEmail)
   }
 
   private func relativePath(for url: URL) throws -> String {
@@ -846,10 +912,19 @@ private struct PhotosSection: View {
 private struct ContactsSection: View {
   let status: String
   @Binding var query: String
+  @Binding var givenName: String
+  @Binding var familyName: String
+  @Binding var email: String
+  @Binding var phone: String
   let contacts: [ContactSummary]
+  let preview: String
   let onCheckTapped: () -> Void
   let onSearchTapped: () -> Void
   let onDuplicatesTapped: () -> Void
+  let onCreateTapped: () -> Void
+  let onUpdatePreviewTapped: () -> Void
+  let onDeletePreviewTapped: () -> Void
+  let onMergePreviewTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -875,6 +950,33 @@ private struct ContactsSection: View {
           .buttonStyle(.bordered)
         Button("Duplicates", action: onDuplicatesTapped)
           .buttonStyle(.bordered)
+      }
+
+      TextField("Given name", text: $givenName)
+        .textFieldStyle(.roundedBorder)
+      TextField("Family name", text: $familyName)
+        .textFieldStyle(.roundedBorder)
+      TextField("Email", text: $email)
+        .textFieldStyle(.roundedBorder)
+      TextField("Phone", text: $phone)
+        .textFieldStyle(.roundedBorder)
+
+      HStack {
+        Button("Create", action: onCreateTapped)
+          .buttonStyle(.bordered)
+        Button("Update", action: onUpdatePreviewTapped)
+          .buttonStyle(.bordered)
+        Button("Delete", action: onDeletePreviewTapped)
+          .buttonStyle(.bordered)
+      }
+
+      Button("Merge", action: onMergePreviewTapped)
+        .buttonStyle(.bordered)
+
+      if !preview.isEmpty {
+        Text(preview)
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
 
       ForEach(contacts) { contact in
