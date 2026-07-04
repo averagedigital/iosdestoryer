@@ -56,6 +56,10 @@ struct ContentView: View {
   @State private var appOpenStatus = ""
   @State private var supportedAppActions: [SupportedAppAction] = []
   @State private var appIntentStatus = ""
+  @State private var audioPermissionStatus = "Not Checked"
+  @State private var audioRecordSeconds = 5.0
+  @State private var latestRecording: AudioRecording?
+  @State private var speechTranscript = ""
 
   var body: some View {
     NavigationStack {
@@ -172,6 +176,14 @@ struct ContentView: View {
               status: appIntentStatus,
               onListTapped: listSupportedAppActions,
               onInvokeTapped: invokeFirstAppAction)
+            AudioSpeechSection(
+              permissionStatus: audioPermissionStatus,
+              durationSeconds: $audioRecordSeconds,
+              recording: latestRecording,
+              transcript: speechTranscript,
+              onPermissionTapped: requestAudioSpeechPermissions,
+              onRecordTapped: recordAudio,
+              onTranscribeTapped: transcribeLatestRecording)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -848,8 +860,68 @@ struct ContentView: View {
     }
   }
 
+  private func requestAudioSpeechPermissions() {
+    Task {
+      do {
+        let permissions = try await AudioSpeechService().requestPermissions()
+        audioPermissionStatus =
+          permissions.microphoneGranted
+          ? "Microphone granted, speech \(permissions.speechStatus.rawValue)"
+          : "Microphone denied, speech \(permissions.speechStatus.rawValue)"
+        auditLog.record(
+          toolName: "audio.permission_status", summary: audioPermissionStatus,
+          status: permissions.microphoneGranted && permissions.speechStatus == .authorized
+            ? .succeeded : .failed)
+      } catch {
+        audioPermissionStatus = error.localizedDescription
+        auditLog.record(
+          toolName: "audio.permission_status", summary: audioPermissionStatus, status: .failed)
+      }
+    }
+  }
+
+  private func recordAudio() {
+    let fileName = "agent-recording-\(Int(Date().timeIntervalSince1970)).m4a"
+    let draft = AudioRecordDraft(
+      fileName: fileName,
+      durationSeconds: audioRecordSeconds,
+      directory: audioDirectory)
+
+    Task {
+      do {
+        let recording = try await AudioSpeechService().record(draft)
+        latestRecording = recording
+        speechTranscript = ""
+        auditLog.record(toolName: "audio.record", summary: fileName, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "audio.record", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func transcribeLatestRecording() {
+    guard let latestRecording else { return }
+
+    Task {
+      do {
+        let transcript = try await AudioSpeechService().transcribe(latestRecording)
+        speechTranscript = transcript.text
+        auditLog.record(
+          toolName: "speech.transcribe", summary: transcript.text, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "speech.transcribe", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
   private var importsDirectory: URL {
     URL.documentsDirectory.appending(path: "Imports", directoryHint: .isDirectory)
+  }
+
+  private var audioDirectory: URL {
+    URL.documentsDirectory.appending(path: "Recordings", directoryHint: .isDirectory)
   }
 
   private var shareInboxDirectory: URL {
@@ -1587,6 +1659,54 @@ private struct AppIntentSection: View {
             .foregroundStyle(.secondary)
         }
         .font(.caption)
+      }
+    }
+  }
+}
+
+private struct AudioSpeechSection: View {
+  let permissionStatus: String
+  @Binding var durationSeconds: Double
+  let recording: AudioRecording?
+  let transcript: String
+  let onPermissionTapped: () -> Void
+  let onRecordTapped: () -> Void
+  let onTranscribeTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Audio & Speech")
+        .font(.headline)
+
+      HStack {
+        Button("Permission", action: onPermissionTapped)
+          .buttonStyle(.bordered)
+        Text(permissionStatus)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      Stepper("Record \(Int(durationSeconds))s", value: $durationSeconds, in: 3...60, step: 1)
+
+      HStack {
+        Button("Record", action: onRecordTapped)
+          .buttonStyle(.bordered)
+        Button("Transcribe", action: onTranscribeTapped)
+          .buttonStyle(.bordered)
+          .disabled(recording == nil)
+      }
+
+      if let recording {
+        Text(recording.fileURL.lastPathComponent)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
+
+      if !transcript.isEmpty {
+        Text(transcript)
+          .font(.caption)
+          .lineLimit(3)
       }
     }
   }

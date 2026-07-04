@@ -118,6 +118,8 @@ public struct ToolRegistry: Sendable {
       AgentTool(
         name: "shortcuts.run_user_configured_shortcut", domain: .appIntents,
         appleFrameworks: ["AppIntents"]),
+      AgentTool(name: "audio.record", domain: .audio, appleFrameworks: ["AVFoundation"]),
+      AgentTool(name: "speech.transcribe", domain: .audio, appleFrameworks: ["Speech"]),
     ])
   }
 }
@@ -158,4 +160,5 @@ public enum ToolDomain: String, CaseIterable, Sendable {
   case app = "App"
   case vision = "Vision"
   case appIntents = "App Intents"
+  case audio = "Audio"
 }

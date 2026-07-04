@@ -52,6 +52,8 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "app_intents.list_supported_actions"))
     XCTAssertNotNil(registry.tool(named: "app_intents.invoke_own_action"))
     XCTAssertNotNil(registry.tool(named: "shortcuts.run_user_configured_shortcut"))
+    XCTAssertNotNil(registry.tool(named: "audio.record"))
+    XCTAssertNotNil(registry.tool(named: "speech.transcribe"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }
