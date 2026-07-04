@@ -77,9 +77,52 @@ final class EventKitServiceTests: XCTestCase {
     XCTAssertEqual(preview.itemID, "reminder-1")
     XCTAssertTrue(completed.isCompleted)
   }
+
+  func testAppliesEventKitPreviewsThroughProvider() async throws {
+    let provider = StubEventKitProvider()
+    let service = EventKitService(provider: provider)
+    let event = CalendarEventSummary(
+      id: "event-1", title: "Old", notes: "", startDate: .distantPast, endDate: .distantFuture)
+    let eventDraft = CalendarEventDraft(
+      title: "New Event", notes: "Updated", startDate: .distantPast, endDate: .distantFuture)
+    let reminder = ReminderSummary(
+      id: "reminder-1", title: "Old", notes: "", isCompleted: false, dueDate: nil)
+    let reminderDraft = ReminderDraft(title: "New Reminder", notes: "Updated", dueDate: nil)
+
+    let updatedEvent = try await service.apply(
+      service.updateEventPreview(event: event, draft: eventDraft))
+    let deletedEvent = try await service.apply(service.deleteEventPreview(event: event))
+    let updatedReminder = try await service.apply(
+      service.updateReminderPreview(reminder: reminder, draft: reminderDraft))
+
+    XCTAssertEqual(
+      updatedEvent,
+      .event(
+        CalendarEventSummary(
+          id: "event-1", title: "New Event", notes: "Updated", startDate: .distantPast,
+          endDate: .distantFuture)))
+    XCTAssertEqual(deletedEvent, .deleted("event-1"))
+    XCTAssertEqual(
+      updatedReminder,
+      .reminder(
+        ReminderSummary(
+          id: "reminder-1", title: "New Reminder", notes: "Updated", isCompleted: false,
+          dueDate: nil)))
+    XCTAssertEqual(provider.updatedEventID, "event-1")
+    XCTAssertEqual(provider.updatedEventDraft, eventDraft)
+    XCTAssertEqual(provider.deletedEventID, "event-1")
+    XCTAssertEqual(provider.updatedReminderID, "reminder-1")
+    XCTAssertEqual(provider.updatedReminderDraft, reminderDraft)
+  }
 }
 
-private struct StubEventKitProvider: EventKitProviding {
+private final class StubEventKitProvider: EventKitProviding {
+  var updatedEventID = ""
+  var updatedEventDraft: CalendarEventDraft?
+  var deletedEventID = ""
+  var updatedReminderID = ""
+  var updatedReminderDraft: ReminderDraft?
+
   func fetchEvents(from startDate: Date, to endDate: Date) async throws -> [CalendarEventSummary] {
     [
       CalendarEventSummary(
@@ -97,6 +140,18 @@ private struct StubEventKitProvider: EventKitProviding {
       endDate: draft.endDate)
   }
 
+  func updateEvent(id: String, draft: CalendarEventDraft) async throws -> CalendarEventSummary {
+    updatedEventID = id
+    updatedEventDraft = draft
+    return CalendarEventSummary(
+      id: id, title: draft.title, notes: draft.notes, startDate: draft.startDate,
+      endDate: draft.endDate)
+  }
+
+  func deleteEvent(id: String) async throws {
+    deletedEventID = id
+  }
+
   func fetchReminders() async throws -> [ReminderSummary] {
     [
       ReminderSummary(
@@ -111,6 +166,13 @@ private struct StubEventKitProvider: EventKitProviding {
     ReminderSummary(
       id: "created-reminder", title: draft.title, notes: draft.notes, isCompleted: false,
       dueDate: draft.dueDate)
+  }
+
+  func updateReminder(id: String, draft: ReminderDraft) async throws -> ReminderSummary {
+    updatedReminderID = id
+    updatedReminderDraft = draft
+    return ReminderSummary(
+      id: id, title: draft.title, notes: draft.notes, isCompleted: false, dueDate: draft.dueDate)
   }
 
   func completeReminder(id: String) async throws -> ReminderSummary {

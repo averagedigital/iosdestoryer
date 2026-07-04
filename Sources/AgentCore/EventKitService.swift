@@ -32,7 +32,8 @@ public struct EventKitService {
       itemID: event.id,
       summary: "Update event \(event.title) to \(draft.title)",
       before: event.title,
-      after: draft.title)
+      after: draft.title,
+      calendarDraft: draft)
   }
 
   public func deleteEventPreview(event: CalendarEventSummary) -> EventKitChangePreview {
@@ -63,19 +64,41 @@ public struct EventKitService {
       itemID: reminder.id,
       summary: "Update reminder \(reminder.title) to \(draft.title)",
       before: reminder.title,
-      after: draft.title)
+      after: draft.title,
+      reminderDraft: draft)
   }
 
   public func completeReminder(id: String) async throws -> ReminderSummary {
     try await provider.completeReminder(id: id)
+  }
+
+  public func apply(_ preview: EventKitChangePreview) async throws -> EventKitApplyResult {
+    switch preview.action {
+    case .updateEvent:
+      guard let draft = preview.calendarDraft else {
+        throw EventKitServiceError.missingDraft
+      }
+      return .event(try await provider.updateEvent(id: preview.itemID, draft: draft))
+    case .deleteEvent:
+      try await provider.deleteEvent(id: preview.itemID)
+      return .deleted(preview.itemID)
+    case .updateReminder:
+      guard let draft = preview.reminderDraft else {
+        throw EventKitServiceError.missingDraft
+      }
+      return .reminder(try await provider.updateReminder(id: preview.itemID, draft: draft))
+    }
   }
 }
 
 public protocol EventKitProviding {
   func fetchEvents(from startDate: Date, to endDate: Date) async throws -> [CalendarEventSummary]
   func createEvent(_ draft: CalendarEventDraft) async throws -> CalendarEventSummary
+  func updateEvent(id: String, draft: CalendarEventDraft) async throws -> CalendarEventSummary
+  func deleteEvent(id: String) async throws
   func fetchReminders() async throws -> [ReminderSummary]
   func createReminder(_ draft: ReminderDraft) async throws -> ReminderSummary
+  func updateReminder(id: String, draft: ReminderDraft) async throws -> ReminderSummary
   func completeReminder(id: String) async throws -> ReminderSummary
 }
 
@@ -85,6 +108,26 @@ public struct EventKitChangePreview: Equatable, Sendable {
   public let summary: String
   public let before: String
   public let after: String
+  public let calendarDraft: CalendarEventDraft?
+  public let reminderDraft: ReminderDraft?
+
+  public init(
+    action: EventKitChangeAction,
+    itemID: String,
+    summary: String,
+    before: String,
+    after: String,
+    calendarDraft: CalendarEventDraft? = nil,
+    reminderDraft: ReminderDraft? = nil
+  ) {
+    self.action = action
+    self.itemID = itemID
+    self.summary = summary
+    self.before = before
+    self.after = after
+    self.calendarDraft = calendarDraft
+    self.reminderDraft = reminderDraft
+  }
 }
 
 public enum EventKitChangeAction: String, Sendable {
@@ -161,7 +204,14 @@ public struct ReminderSummary: Equatable, Identifiable, Sendable {
 
 public enum EventKitServiceError: Error, Equatable {
   case noDefaultCalendar
+  case missingDraft
   case calendarItemNotFound(String)
+}
+
+public enum EventKitApplyResult: Equatable, Sendable {
+  case event(CalendarEventSummary)
+  case reminder(ReminderSummary)
+  case deleted(String)
 }
 
 #if canImport(EventKit)
@@ -185,13 +235,28 @@ public enum EventKitServiceError: Error, Equatable {
       }
 
       let event = EKEvent(eventStore: store)
-      event.title = draft.title
-      event.notes = draft.notes
-      event.startDate = draft.startDate
-      event.endDate = draft.endDate
+      apply(draft, to: event)
       event.calendar = calendar
       try store.save(event, span: .thisEvent, commit: true)
       return CalendarEventSummary(event: event)
+    }
+
+    public func updateEvent(id: String, draft: CalendarEventDraft) async throws
+      -> CalendarEventSummary
+    {
+      guard let event = store.event(withIdentifier: id) else {
+        throw EventKitServiceError.calendarItemNotFound(id)
+      }
+      apply(draft, to: event)
+      try store.save(event, span: .thisEvent, commit: true)
+      return CalendarEventSummary(event: event)
+    }
+
+    public func deleteEvent(id: String) async throws {
+      guard let event = store.event(withIdentifier: id) else {
+        throw EventKitServiceError.calendarItemNotFound(id)
+      }
+      try store.remove(event, span: .thisEvent, commit: true)
     }
 
     public func fetchReminders() async throws -> [ReminderSummary] {
@@ -209,13 +274,17 @@ public enum EventKitServiceError: Error, Equatable {
       }
 
       let reminder = EKReminder(eventStore: store)
-      reminder.title = draft.title
-      reminder.notes = draft.notes
+      apply(draft, to: reminder)
       reminder.calendar = calendar
-      if let dueDate = draft.dueDate {
-        reminder.dueDateComponents = Calendar.current.dateComponents(
-          [.year, .month, .day, .hour, .minute], from: dueDate)
+      try store.save(reminder, commit: true)
+      return ReminderSummary(reminder: reminder)
+    }
+
+    public func updateReminder(id: String, draft: ReminderDraft) async throws -> ReminderSummary {
+      guard let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else {
+        throw EventKitServiceError.calendarItemNotFound(id)
       }
+      apply(draft, to: reminder)
       try store.save(reminder, commit: true)
       return ReminderSummary(reminder: reminder)
     }
@@ -227,6 +296,21 @@ public enum EventKitServiceError: Error, Equatable {
       reminder.isCompleted = true
       try store.save(reminder, commit: true)
       return ReminderSummary(reminder: reminder)
+    }
+
+    private func apply(_ draft: CalendarEventDraft, to event: EKEvent) {
+      event.title = draft.title
+      event.notes = draft.notes
+      event.startDate = draft.startDate
+      event.endDate = draft.endDate
+    }
+
+    private func apply(_ draft: ReminderDraft, to reminder: EKReminder) {
+      reminder.title = draft.title
+      reminder.notes = draft.notes
+      reminder.dueDateComponents = draft.dueDate.map {
+        Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: $0)
+      }
     }
   }
 
@@ -265,12 +349,26 @@ public enum EventKitServiceError: Error, Equatable {
       throw EventKitServiceError.noDefaultCalendar
     }
 
+    public func updateEvent(id: String, draft: CalendarEventDraft) async throws
+      -> CalendarEventSummary
+    {
+      throw EventKitServiceError.calendarItemNotFound(id)
+    }
+
+    public func deleteEvent(id: String) async throws {
+      throw EventKitServiceError.calendarItemNotFound(id)
+    }
+
     public func fetchReminders() async throws -> [ReminderSummary] {
       []
     }
 
     public func createReminder(_ draft: ReminderDraft) async throws -> ReminderSummary {
       throw EventKitServiceError.noDefaultCalendar
+    }
+
+    public func updateReminder(id: String, draft: ReminderDraft) async throws -> ReminderSummary {
+      throw EventKitServiceError.calendarItemNotFound(id)
     }
 
     public func completeReminder(id: String) async throws -> ReminderSummary {

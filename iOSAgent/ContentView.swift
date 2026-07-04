@@ -57,6 +57,7 @@ struct ContentView: View {
   @State private var reminderTitle = "New reminder"
   @State private var reminders: [ReminderSummary] = []
   @State private var eventKitPreview = ""
+  @State private var pendingEventKitPreview: EventKitChangePreview?
   @State private var notificationPermissionStatus = "Not Checked"
   @State private var notificationTitle = "Reminder"
   @State private var notificationBody = "Review the item"
@@ -171,6 +172,7 @@ struct ContentView: View {
               reminderTitle: $reminderTitle,
               reminders: reminders,
               preview: eventKitPreview,
+              hasPendingPreview: pendingEventKitPreview != nil,
               onCalendarTapped: checkCalendarPermission,
               onRemindersTapped: checkReminderPermission,
               onCalendarSearchTapped: searchCalendarEvents,
@@ -180,7 +182,8 @@ struct ContentView: View {
               onCalendarUpdatePreviewTapped: previewCalendarEventUpdate,
               onCalendarDeletePreviewTapped: previewCalendarEventDelete,
               onReminderUpdatePreviewTapped: previewReminderUpdate,
-              onReminderCompleteTapped: completeReminder)
+              onReminderCompleteTapped: completeReminder,
+              onConfirmPreviewTapped: confirmEventKitPreview)
             NotificationSection(
               status: notificationPermissionStatus,
               title: $notificationTitle,
@@ -947,12 +950,14 @@ struct ContentView: View {
           from: now.addingTimeInterval(-30 * 24 * 60 * 60),
           to: now.addingTimeInterval(365 * 24 * 60 * 60))
         eventKitPreview = ""
+        pendingEventKitPreview = nil
         auditLog.record(
           toolName: "calendar.search_events", summary: "\(calendarEvents.count) events",
           status: .succeeded)
       } catch {
         calendarEvents = []
         eventKitPreview = ""
+        pendingEventKitPreview = nil
         auditLog.record(
           toolName: "calendar.search_events", summary: error.localizedDescription,
           status: .failed)
@@ -966,6 +971,7 @@ struct ContentView: View {
         let event = try await EventKitService().createEvent(calendarEventDraft)
         calendarEvents = [event]
         eventKitPreview = ""
+        pendingEventKitPreview = nil
         auditLog.record(
           toolName: "calendar.create_event", summary: event.title, status: .succeeded)
       } catch {
@@ -980,12 +986,14 @@ struct ContentView: View {
       do {
         reminders = try await EventKitService().searchReminders(reminderQuery)
         eventKitPreview = ""
+        pendingEventKitPreview = nil
         auditLog.record(
           toolName: "reminders.search", summary: "\(reminders.count) reminders",
           status: .succeeded)
       } catch {
         reminders = []
         eventKitPreview = ""
+        pendingEventKitPreview = nil
         auditLog.record(
           toolName: "reminders.search", summary: error.localizedDescription, status: .failed)
       }
@@ -998,6 +1006,7 @@ struct ContentView: View {
         let reminder = try await EventKitService().createReminder(reminderDraft)
         reminders = [reminder]
         eventKitPreview = ""
+        pendingEventKitPreview = nil
         auditLog.record(
           toolName: "reminders.create", summary: reminder.title, status: .succeeded)
       } catch {
@@ -1010,6 +1019,7 @@ struct ContentView: View {
   private func previewCalendarEventUpdate() {
     guard let event = calendarEvents.first else { return }
     let preview = EventKitService().updateEventPreview(event: event, draft: calendarEventDraft)
+    pendingEventKitPreview = preview
     eventKitPreview = preview.summary
     auditLog.record(
       toolName: "calendar.update_event_with_preview", summary: preview.summary,
@@ -1019,6 +1029,7 @@ struct ContentView: View {
   private func previewCalendarEventDelete() {
     guard let event = calendarEvents.first else { return }
     let preview = EventKitService().deleteEventPreview(event: event)
+    pendingEventKitPreview = preview
     eventKitPreview = preview.summary
     auditLog.record(
       toolName: "calendar.delete_event_with_preview", summary: preview.summary,
@@ -1028,6 +1039,7 @@ struct ContentView: View {
   private func previewReminderUpdate() {
     guard let reminder = reminders.first else { return }
     let preview = EventKitService().updateReminderPreview(reminder: reminder, draft: reminderDraft)
+    pendingEventKitPreview = preview
     eventKitPreview = preview.summary
     auditLog.record(
       toolName: "reminders.update_with_preview", summary: preview.summary,
@@ -1041,12 +1053,50 @@ struct ContentView: View {
         let completed = try await EventKitService().completeReminder(id: reminder.id)
         reminders = [completed]
         eventKitPreview = ""
+        pendingEventKitPreview = nil
         auditLog.record(
           toolName: "reminders.complete", summary: completed.title, status: .succeeded)
       } catch {
         auditLog.record(
           toolName: "reminders.complete", summary: error.localizedDescription, status: .failed)
       }
+    }
+  }
+
+  private func confirmEventKitPreview() {
+    guard let preview = pendingEventKitPreview else { return }
+    Task {
+      do {
+        let result = try await EventKitService().apply(preview)
+        pendingEventKitPreview = nil
+        eventKitPreview = "Confirmed: \(preview.summary)"
+        switch result {
+        case .event(let event):
+          calendarEvents = calendarEvents.map { $0.id == event.id ? event : $0 }
+        case .reminder(let reminder):
+          reminders = reminders.map { $0.id == reminder.id ? reminder : $0 }
+        case .deleted(let id):
+          calendarEvents.removeAll { $0.id == id }
+        }
+        auditLog.record(
+          toolName: eventKitToolName(for: preview.action), summary: preview.summary,
+          status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: eventKitToolName(for: preview.action), summary: error.localizedDescription,
+          status: .failed)
+      }
+    }
+  }
+
+  private func eventKitToolName(for action: EventKitChangeAction) -> String {
+    switch action {
+    case .updateEvent:
+      "calendar.update_event_with_preview"
+    case .deleteEvent:
+      "calendar.delete_event_with_preview"
+    case .updateReminder:
+      "reminders.update_with_preview"
     }
   }
 
@@ -1986,6 +2036,7 @@ private struct EventKitSection: View {
   @Binding var reminderTitle: String
   let reminders: [ReminderSummary]
   let preview: String
+  let hasPendingPreview: Bool
   let onCalendarTapped: () -> Void
   let onRemindersTapped: () -> Void
   let onCalendarSearchTapped: () -> Void
@@ -1996,6 +2047,7 @@ private struct EventKitSection: View {
   let onCalendarDeletePreviewTapped: () -> Void
   let onReminderUpdatePreviewTapped: () -> Void
   let onReminderCompleteTapped: () -> Void
+  let onConfirmPreviewTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -2068,6 +2120,10 @@ private struct EventKitSection: View {
         Text(preview)
           .font(.caption)
           .foregroundStyle(.secondary)
+        if hasPendingPreview {
+          Button("Confirm", role: .destructive, action: onConfirmPreviewTapped)
+            .buttonStyle(.borderedProminent)
+        }
       }
 
       ForEach(reminders) { reminder in
