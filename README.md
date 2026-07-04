@@ -8,6 +8,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - SwiftUI app shell: chat input, tool list, and audit section.
 - `AgentCore` Swift package: tool registry and audit log.
 - `files.pick_file` core import service: copies a user-picked file into the app container and keeps same-name imports instead of overwriting.
+- `files.pick_folder` copies a user-picked folder into the app container with nested files preserved for local search/indexing.
 - `files.list_allowed_sources` shows the app-managed Imports directory only.
 - `files.write`, `files.copy`, `files.move`, `files.delete_with_preview`, and `files.extract_text` operate only inside app-managed Imports.
 - `files.read` UTF-8 reader for app-managed imported files.
@@ -72,4 +73,4 @@ Sources checked:
 - `Sources/AgentCore/`: testable agent contracts and local tool metadata.
 - `Tests/AgentCoreTests/`: narrow behavior tests.
 
-Next feature should be `files.pick_file` plus app-container import/index stub, because it is the smallest useful permission-based workflow and does not require Photos/Contacts entitlements yet.
+Next feature should be the real Share Extension target/App Group wiring; the current share inbox core already models the app-owned ingestion behavior.

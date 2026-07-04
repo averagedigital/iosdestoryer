@@ -8,6 +8,7 @@ struct ContentView: View {
   @State private var message = ""
   @State private var auditLog = AuditLog()
   @State private var isImportingFile = false
+  @State private var isImportingFolder = false
   @State private var isImportingOCRImage = false
   @State private var isImportingBarcodeImage = false
   @State private var isTakingPhoto = false
@@ -89,6 +90,7 @@ struct ContentView: View {
               contextBundleMarkdown: contextBundleMarkdown,
               pendingDeletePreview: pendingDeletePreview,
               onImportTapped: { isImportingFile = true },
+              onFolderImportTapped: { isImportingFolder = true },
               onSourcesTapped: listAllowedSources,
               onWriteTapped: writeTextFile,
               onSearchTapped: searchImportedFiles,
@@ -227,6 +229,12 @@ struct ContentView: View {
         onCompletion: handleFileImport
       )
       .fileImporter(
+        isPresented: $isImportingFolder,
+        allowedContentTypes: [.folder],
+        allowsMultipleSelection: false,
+        onCompletion: handleFolderImport
+      )
+      .fileImporter(
         isPresented: $isImportingOCRImage,
         allowedContentTypes: [.image],
         allowsMultipleSelection: false,
@@ -268,6 +276,30 @@ struct ContentView: View {
       importedFileName = nil
       auditLog.record(
         toolName: "files.pick_file", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func handleFolderImport(_ result: Result<[URL], Error>) {
+    switch result {
+    case .success(let urls):
+      guard let url = urls.first else { return }
+      do {
+        let imported = try FileImportService(importsDirectory: importsDirectory)
+          .importPickedFolder(from: url)
+        importedFileName = imported.originalFolderName
+        fileOperationStatus =
+          "\(imported.importedFiles.count) files imported, \(imported.skippedFiles.count) skipped"
+        auditLog.record(
+          toolName: "files.pick_folder", summary: fileOperationStatus, status: .succeeded)
+      } catch {
+        fileOperationStatus = error.localizedDescription
+        auditLog.record(
+          toolName: "files.pick_folder", summary: error.localizedDescription, status: .failed)
+      }
+    case .failure(let error):
+      fileOperationStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "files.pick_folder", summary: error.localizedDescription, status: .failed)
     }
   }
 
@@ -1172,6 +1204,7 @@ private struct FileImportSection: View {
   let contextBundleMarkdown: String
   let pendingDeletePreview: FileDeletePreview?
   let onImportTapped: () -> Void
+  let onFolderImportTapped: () -> Void
   let onSourcesTapped: () -> Void
   let onWriteTapped: () -> Void
   let onSearchTapped: () -> Void
@@ -1189,10 +1222,17 @@ private struct FileImportSection: View {
         .font(.subheadline)
         .foregroundStyle(.secondary)
 
-      Button(action: onImportTapped) {
-        Label(importedFileName ?? "Import File", systemImage: "doc.badge.plus")
+      HStack {
+        Button(action: onImportTapped) {
+          Label(importedFileName ?? "Import File", systemImage: "doc.badge.plus")
+        }
+        .buttonStyle(.borderedProminent)
+
+        Button(action: onFolderImportTapped) {
+          Label("Import Folder", systemImage: "folder.badge.plus")
+        }
+        .buttonStyle(.bordered)
       }
-      .buttonStyle(.borderedProminent)
 
       Button(action: onSourcesTapped) {
         Label("Allowed Sources", systemImage: "folder")

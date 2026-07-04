@@ -30,6 +30,65 @@ public struct FileImportService {
     return ImportedFile(originalFilename: sourceURL.lastPathComponent, localURL: destinationURL)
   }
 
+  public func importPickedFolder(from sourceURL: URL) throws -> ImportedFolder {
+    try FileManager.default.createDirectory(at: importsDirectory, withIntermediateDirectories: true)
+
+    let didAccess = sourceURL.startAccessingSecurityScopedResource()
+    defer {
+      if didAccess {
+        sourceURL.stopAccessingSecurityScopedResource()
+      }
+    }
+
+    let destinationFolder = availableDestinationURL(for: sourceURL.lastPathComponent)
+    try FileManager.default.createDirectory(
+      at: destinationFolder, withIntermediateDirectories: true)
+
+    let fileManager = FileManager.default
+    guard
+      let enumerator = fileManager.enumerator(
+        at: sourceURL, includingPropertiesForKeys: [.isRegularFileKey])
+    else {
+      throw FileImportError.unreadableFolder(sourceURL.lastPathComponent)
+    }
+
+    var importedFiles: [ImportedFile] = []
+    var skippedFiles: [String] = []
+    let sourceRoot = sourceURL.resolvingSymlinksInPath().standardizedFileURL.path
+
+    for case let fileURL as URL in enumerator {
+      do {
+        let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+        guard values.isRegularFile == true else { continue }
+
+        let filePath = fileURL.resolvingSymlinksInPath().standardizedFileURL.path
+        guard filePath.hasPrefix(sourceRoot + "/") else {
+          skippedFiles.append(fileURL.lastPathComponent)
+          continue
+        }
+
+        let relativePath = String(filePath.dropFirst(sourceRoot.count + 1))
+        let destinationURL = relativePath.split(separator: "/").reduce(destinationFolder) {
+          partialURL, component in
+          partialURL.appending(path: String(component))
+        }
+        try fileManager.createDirectory(
+          at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fileManager.copyItem(at: fileURL, to: destinationURL)
+        importedFiles.append(
+          ImportedFile(originalFilename: relativePath, localURL: destinationURL))
+      } catch {
+        skippedFiles.append(fileURL.lastPathComponent)
+      }
+    }
+
+    return ImportedFolder(
+      originalFolderName: sourceURL.lastPathComponent,
+      localURL: destinationFolder,
+      importedFiles: importedFiles,
+      skippedFiles: skippedFiles)
+  }
+
   private func availableDestinationURL(for filename: String) -> URL {
     let candidate = importsDirectory.appending(path: filename)
     guard FileManager.default.fileExists(atPath: candidate.path) else {
@@ -51,6 +110,19 @@ public struct FileImportService {
   }
 }
 
+public enum FileImportError: Error, Equatable {
+  case unreadableFolder(String)
+}
+
+extension FileImportError: LocalizedError {
+  public var errorDescription: String? {
+    switch self {
+    case .unreadableFolder(let name):
+      "Could not read folder \(name)."
+    }
+  }
+}
+
 public struct ImportedFile: Equatable, Sendable {
   public let originalFilename: String
   public let localURL: URL
@@ -58,5 +130,24 @@ public struct ImportedFile: Equatable, Sendable {
   public init(originalFilename: String, localURL: URL) {
     self.originalFilename = originalFilename
     self.localURL = localURL
+  }
+}
+
+public struct ImportedFolder: Equatable, Sendable {
+  public let originalFolderName: String
+  public let localURL: URL
+  public let importedFiles: [ImportedFile]
+  public let skippedFiles: [String]
+
+  public init(
+    originalFolderName: String,
+    localURL: URL,
+    importedFiles: [ImportedFile],
+    skippedFiles: [String]
+  ) {
+    self.originalFolderName = originalFolderName
+    self.localURL = localURL
+    self.importedFiles = importedFiles
+    self.skippedFiles = skippedFiles
   }
 }
