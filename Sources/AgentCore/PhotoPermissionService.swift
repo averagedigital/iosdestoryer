@@ -14,10 +14,15 @@ public struct PhotoPermissionService {
   public func currentStatus() -> PhotoPermissionStatus {
     provider.authorizationStatus()
   }
+
+  public func requestAuthorization() async -> PhotoPermissionStatus {
+    await provider.requestAuthorization()
+  }
 }
 
-public protocol PhotoAuthorizationProviding {
+public protocol PhotoAuthorizationProviding: Sendable {
   func authorizationStatus() -> PhotoPermissionStatus
+  func requestAuthorization() async -> PhotoPermissionStatus
 }
 
 public enum PhotoPermissionStatus: String, Equatable, Sendable {
@@ -47,7 +52,7 @@ public enum PhotoPermissionStatus: String, Equatable, Sendable {
 }
 
 #if canImport(Photos)
-  public struct PhotoKitAuthorizationProvider: PhotoAuthorizationProviding {
+  public struct PhotoKitAuthorizationProvider: PhotoAuthorizationProviding, Sendable {
     public init() {}
 
     public func authorizationStatus() -> PhotoPermissionStatus {
@@ -66,12 +71,41 @@ public enum PhotoPermissionStatus: String, Equatable, Sendable {
         .unknown
       }
     }
+
+    public func requestAuthorization() async -> PhotoPermissionStatus {
+      await withCheckedContinuation { continuation in
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+          continuation.resume(returning: map(status))
+        }
+      }
+    }
+
+    private func map(_ status: PHAuthorizationStatus) -> PhotoPermissionStatus {
+      switch status {
+      case .notDetermined:
+        .notDetermined
+      case .restricted:
+        .restricted
+      case .denied:
+        .denied
+      case .limited:
+        .limited
+      case .authorized:
+        .authorized
+      @unknown default:
+        .unknown
+      }
+    }
   }
 #else
-  public struct PhotoKitAuthorizationProvider: PhotoAuthorizationProviding {
+  public struct PhotoKitAuthorizationProvider: PhotoAuthorizationProviding, Sendable {
     public init() {}
 
     public func authorizationStatus() -> PhotoPermissionStatus {
+      .unknown
+    }
+
+    public func requestAuthorization() async -> PhotoPermissionStatus {
       .unknown
     }
   }

@@ -14,10 +14,15 @@ public struct ContactPermissionService {
   public func currentStatus() -> ContactPermissionStatus {
     provider.authorizationStatus()
   }
+
+  public func requestAuthorization() async -> ContactPermissionStatus {
+    await provider.requestAuthorization()
+  }
 }
 
-public protocol ContactAuthorizationProviding {
+public protocol ContactAuthorizationProviding: Sendable {
   func authorizationStatus() -> ContactPermissionStatus
+  func requestAuthorization() async -> ContactPermissionStatus
 }
 
 public enum ContactPermissionStatus: String, Equatable, Sendable {
@@ -47,11 +52,23 @@ public enum ContactPermissionStatus: String, Equatable, Sendable {
 }
 
 #if canImport(Contacts)
-  public struct ContactStoreAuthorizationProvider: ContactAuthorizationProviding {
+  public struct ContactStoreAuthorizationProvider: ContactAuthorizationProviding, Sendable {
     public init() {}
 
     public func authorizationStatus() -> ContactPermissionStatus {
       let status = CNContactStore.authorizationStatus(for: .contacts)
+      return map(status)
+    }
+
+    public func requestAuthorization() async -> ContactPermissionStatus {
+      await withCheckedContinuation { continuation in
+        CNContactStore().requestAccess(for: .contacts) { _, _ in
+          continuation.resume(returning: authorizationStatus())
+        }
+      }
+    }
+
+    private func map(_ status: CNAuthorizationStatus) -> ContactPermissionStatus {
       #if os(iOS)
         if #available(iOS 18.0, macOS 15.0, *), status == .limited {
           return .limited
@@ -77,10 +94,14 @@ public enum ContactPermissionStatus: String, Equatable, Sendable {
     }
   }
 #else
-  public struct ContactStoreAuthorizationProvider: ContactAuthorizationProviding {
+  public struct ContactStoreAuthorizationProvider: ContactAuthorizationProviding, Sendable {
     public init() {}
 
     public func authorizationStatus() -> ContactPermissionStatus {
+      .unknown
+    }
+
+    public func requestAuthorization() async -> ContactPermissionStatus {
       .unknown
     }
   }

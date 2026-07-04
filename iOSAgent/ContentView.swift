@@ -138,6 +138,7 @@ struct ContentView: View {
               preview: photoPreview,
               hasPendingPreview: pendingPhotoPreview != nil,
               onCheckTapped: checkPhotoPermission,
+              onRequestTapped: requestPhotoPermission,
               onListTapped: listPhotoAssets,
               onScreenshotsTapped: findScreenshots,
               onClassifyTapped: classifyPhotoCandidates,
@@ -159,6 +160,7 @@ struct ContentView: View {
               preview: contactPreview,
               hasPendingPreview: pendingContactPreview != nil || pendingContactMergePreview != nil,
               onCheckTapped: checkContactPermission,
+              onRequestTapped: requestContactPermission,
               onSearchTapped: searchContacts,
               onDuplicatesTapped: findDuplicateContacts,
               onCreateTapped: createContact,
@@ -179,6 +181,8 @@ struct ContentView: View {
               hasPendingPreview: pendingEventKitPreview != nil,
               onCalendarTapped: checkCalendarPermission,
               onRemindersTapped: checkReminderPermission,
+              onRequestCalendarTapped: requestCalendarPermission,
+              onRequestRemindersTapped: requestReminderPermission,
               onCalendarSearchTapped: searchCalendarEvents,
               onCalendarCreateTapped: createCalendarEvent,
               onReminderSearchTapped: searchReminders,
@@ -767,6 +771,16 @@ struct ContentView: View {
       toolName: "photos.permission_status", summary: status.rawValue, status: .succeeded)
   }
 
+  private func requestPhotoPermission() {
+    Task {
+      let status = await PhotoPermissionService().requestAuthorization()
+      photoPermissionStatus = status.displayName
+      auditLog.record(
+        toolName: "photos.permission_status", summary: status.rawValue,
+        status: status == .authorized || status == .limited ? .succeeded : .failed)
+    }
+  }
+
   private func listPhotoAssets() {
     photoAssets = PhotoLibraryService().listAssets(limit: 20)
     photoClassifications = []
@@ -911,6 +925,16 @@ struct ContentView: View {
     contactPermissionStatus = status.displayName
     auditLog.record(
       toolName: "contacts.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func requestContactPermission() {
+    Task {
+      let status = await ContactPermissionService().requestAuthorization()
+      contactPermissionStatus = status.displayName
+      auditLog.record(
+        toolName: "contacts.permission_status", summary: status.rawValue,
+        status: status == .authorized || status == .limited ? .succeeded : .failed)
+    }
   }
 
   private func searchContacts() {
@@ -1060,11 +1084,32 @@ struct ContentView: View {
       toolName: "calendar.permission_status", summary: status.rawValue, status: .succeeded)
   }
 
+  private func requestCalendarPermission() {
+    Task {
+      let status = await EventPermissionService().requestAuthorization(for: .calendar)
+      calendarPermissionStatus = status.displayName
+      auditLog.record(
+        toolName: "calendar.permission_status", summary: status.rawValue,
+        status: status == .fullAccess || status == .authorized || status == .writeOnly
+          ? .succeeded : .failed)
+    }
+  }
+
   private func checkReminderPermission() {
     let status = EventPermissionService().currentStatus(for: .reminders)
     reminderPermissionStatus = status.displayName
     auditLog.record(
       toolName: "reminders.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func requestReminderPermission() {
+    Task {
+      let status = await EventPermissionService().requestAuthorization(for: .reminders)
+      reminderPermissionStatus = status.displayName
+      auditLog.record(
+        toolName: "reminders.permission_status", summary: status.rawValue,
+        status: status == .fullAccess || status == .authorized ? .succeeded : .failed)
+    }
   }
 
   private func searchCalendarEvents() {
@@ -2153,6 +2198,7 @@ private struct PhotosSection: View {
   let preview: String
   let hasPendingPreview: Bool
   let onCheckTapped: () -> Void
+  let onRequestTapped: () -> Void
   let onListTapped: () -> Void
   let onScreenshotsTapped: () -> Void
   let onClassifyTapped: () -> Void
@@ -2171,9 +2217,12 @@ private struct PhotosSection: View {
 
       HStack {
         Button(action: onCheckTapped) {
-          Label("Check Permission", systemImage: "photo.on.rectangle")
+          Label("Status", systemImage: "photo.on.rectangle")
         }
         .buttonStyle(.bordered)
+
+        Button("Request", action: onRequestTapped)
+          .buttonStyle(.bordered)
 
         Text(status)
           .font(.caption)
@@ -2254,6 +2303,7 @@ private struct ContactsSection: View {
   let preview: String
   let hasPendingPreview: Bool
   let onCheckTapped: () -> Void
+  let onRequestTapped: () -> Void
   let onSearchTapped: () -> Void
   let onDuplicatesTapped: () -> Void
   let onCreateTapped: () -> Void
@@ -2269,9 +2319,12 @@ private struct ContactsSection: View {
 
       HStack {
         Button(action: onCheckTapped) {
-          Label("Check Permission", systemImage: "person.crop.circle")
+          Label("Status", systemImage: "person.crop.circle")
         }
         .buttonStyle(.bordered)
+
+        Button("Request", action: onRequestTapped)
+          .buttonStyle(.bordered)
 
         Text(status)
           .font(.caption)
@@ -2347,6 +2400,8 @@ private struct EventKitSection: View {
   let hasPendingPreview: Bool
   let onCalendarTapped: () -> Void
   let onRemindersTapped: () -> Void
+  let onRequestCalendarTapped: () -> Void
+  let onRequestRemindersTapped: () -> Void
   let onCalendarSearchTapped: () -> Void
   let onCalendarCreateTapped: () -> Void
   let onReminderSearchTapped: () -> Void
@@ -2364,9 +2419,12 @@ private struct EventKitSection: View {
 
       HStack {
         Button(action: onCalendarTapped) {
-          Label("Calendar", systemImage: "calendar")
+          Label("Calendar Status", systemImage: "calendar")
         }
         .buttonStyle(.bordered)
+
+        Button("Request", action: onRequestCalendarTapped)
+          .buttonStyle(.bordered)
 
         Text(calendarStatus)
           .font(.caption)
@@ -2398,9 +2456,12 @@ private struct EventKitSection: View {
 
       HStack {
         Button(action: onRemindersTapped) {
-          Label("Reminders", systemImage: "checklist")
+          Label("Reminders Status", systemImage: "checklist")
         }
         .buttonStyle(.bordered)
+
+        Button("Request", action: onRequestRemindersTapped)
+          .buttonStyle(.bordered)
 
         Text(reminderStatus)
           .font(.caption)

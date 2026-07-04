@@ -5,9 +5,18 @@ import XCTest
 final class PhotoPermissionTests: XCTestCase {
   func testReturnsCurrentStatusFromProvider() {
     let service = PhotoPermissionService(
-      provider: StubPhotoAuthorizationProvider(status: .limited))
+      provider: StubPhotoAuthorizationProvider(status: .limited, requestedStatus: .authorized))
 
     XCTAssertEqual(service.currentStatus(), .limited)
+  }
+
+  func testRequestsAuthorizationThroughProvider() async {
+    let service = PhotoPermissionService(
+      provider: StubPhotoAuthorizationProvider(status: .notDetermined, requestedStatus: .limited))
+
+    let status = await service.requestAuthorization()
+
+    XCTAssertEqual(status, .limited)
   }
 
   func testStatusHasInspectableDisplayName() {
@@ -18,8 +27,13 @@ final class PhotoPermissionTests: XCTestCase {
 
 private struct StubPhotoAuthorizationProvider: PhotoAuthorizationProviding {
   let status: PhotoPermissionStatus
+  let requestedStatus: PhotoPermissionStatus
 
   func authorizationStatus() -> PhotoPermissionStatus {
     status
+  }
+
+  func requestAuthorization() async -> PhotoPermissionStatus {
+    requestedStatus
   }
 }

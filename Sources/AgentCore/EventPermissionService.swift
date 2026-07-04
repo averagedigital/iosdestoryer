@@ -14,10 +14,16 @@ public struct EventPermissionService {
   public func currentStatus(for entity: EventPermissionEntity) -> EventPermissionStatus {
     provider.authorizationStatus(for: entity)
   }
+
+  public func requestAuthorization(for entity: EventPermissionEntity) async -> EventPermissionStatus
+  {
+    await provider.requestAuthorization(for: entity)
+  }
 }
 
-public protocol EventAuthorizationProviding {
+public protocol EventAuthorizationProviding: Sendable {
   func authorizationStatus(for entity: EventPermissionEntity) -> EventPermissionStatus
+  func requestAuthorization(for entity: EventPermissionEntity) async -> EventPermissionStatus
 }
 
 public enum EventPermissionEntity: Sendable {
@@ -55,7 +61,7 @@ public enum EventPermissionStatus: String, Equatable, Sendable {
 }
 
 #if canImport(EventKit)
-  public struct EventKitAuthorizationProvider: EventAuthorizationProviding {
+  public struct EventKitAuthorizationProvider: EventAuthorizationProviding, Sendable {
     public init() {}
 
     public func authorizationStatus(for entity: EventPermissionEntity) -> EventPermissionStatus {
@@ -76,6 +82,23 @@ public enum EventPermissionStatus: String, Equatable, Sendable {
         .unknown
       }
     }
+
+    public func requestAuthorization(for entity: EventPermissionEntity) async
+      -> EventPermissionStatus
+    {
+      let store = EKEventStore()
+      do {
+        switch entity {
+        case .calendar:
+          _ = try await store.requestFullAccessToEvents()
+        case .reminders:
+          _ = try await store.requestFullAccessToReminders()
+        }
+        return authorizationStatus(for: entity)
+      } catch {
+        return authorizationStatus(for: entity)
+      }
+    }
   }
 
   extension EventPermissionEntity {
@@ -89,10 +112,16 @@ public enum EventPermissionStatus: String, Equatable, Sendable {
     }
   }
 #else
-  public struct EventKitAuthorizationProvider: EventAuthorizationProviding {
+  public struct EventKitAuthorizationProvider: EventAuthorizationProviding, Sendable {
     public init() {}
 
     public func authorizationStatus(for entity: EventPermissionEntity) -> EventPermissionStatus {
+      .unknown
+    }
+
+    public func requestAuthorization(for entity: EventPermissionEntity) async
+      -> EventPermissionStatus
+    {
       .unknown
     }
   }
