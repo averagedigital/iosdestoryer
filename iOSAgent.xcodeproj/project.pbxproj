@@ -22,6 +22,8 @@
 		100000000000000000000098 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000099 /* NotificationService.swift */; };
 		10000000000000000000009A /* ShareInboxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009B /* ShareInboxService.swift */; };
 		10000000000000000000009C /* AppURLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009D /* AppURLService.swift */; };
+		10000000000000000000009E /* AppIntentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009F /* AppIntentService.swift */; };
+		1000000000000000000000A0 /* AgentAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000A1 /* AgentAppIntents.swift */; };
 		100000000000000000000025 /* ContactPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* ContactPermissionService.swift */; };
 		100000000000000000000027 /* EventPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* EventPermissionService.swift */; };
 		100000000000000000000029 /* FileReadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002A /* FileReadService.swift */; };
@@ -51,6 +53,8 @@
 		100000000000000000000099 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		10000000000000000000009B /* ShareInboxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareInboxService.swift; sourceTree = "<group>"; };
 		10000000000000000000009D /* AppURLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppURLService.swift; sourceTree = "<group>"; };
+		10000000000000000000009F /* AppIntentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentService.swift; sourceTree = "<group>"; };
+		1000000000000000000000A1 /* AgentAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAppIntents.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* PhotoPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* ContactPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* EventPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPermissionService.swift; sourceTree = "<group>"; };
@@ -69,6 +73,7 @@
 		100000000000000000000021 /* iOSAgent */ = {
 			isa = PBXGroup;
 			children = (
+				1000000000000000000000A1 /* AgentAppIntents.swift */,
 				100000000000000000000011 /* iOSAgentApp.swift */,
 				100000000000000000000012 /* ContentView.swift */,
 				100000000000000000000015 /* Info.plist */,
@@ -79,6 +84,7 @@
 		100000000000000000000022 /* AgentCore */ = {
 			isa = PBXGroup;
 			children = (
+				10000000000000000000009F /* AppIntentService.swift */,
 				10000000000000000000009D /* AppURLService.swift */,
 				100000000000000000000013 /* AuditLog.swift */,
 				100000000000000000000095 /* ContactLibraryService.swift */,
@@ -191,6 +197,8 @@
 			files = (
 				100000000000000000000001 /* iOSAgentApp.swift in Sources */,
 				100000000000000000000002 /* ContentView.swift in Sources */,
+				1000000000000000000000A0 /* AgentAppIntents.swift in Sources */,
+				10000000000000000000009E /* AppIntentService.swift in Sources */,
 				10000000000000000000009C /* AppURLService.swift in Sources */,
 				100000000000000000000003 /* AuditLog.swift in Sources */,
 				100000000000000000000094 /* ContactLibraryService.swift in Sources */,

@@ -112,6 +112,12 @@ public struct ToolRegistry: Sendable {
       AgentTool(
         name: "app_intents.list_supported_actions", domain: .appIntents,
         appleFrameworks: ["AppIntents"]),
+      AgentTool(
+        name: "app_intents.invoke_own_action", domain: .appIntents,
+        appleFrameworks: ["AppIntents"]),
+      AgentTool(
+        name: "shortcuts.run_user_configured_shortcut", domain: .appIntents,
+        appleFrameworks: ["AppIntents"]),
     ])
   }
 }

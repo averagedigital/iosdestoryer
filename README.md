@@ -22,6 +22,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `notify.schedule` and `notify.cancel` use UserNotifications after explicit permission.
 - `share.import_text`, `share.import_url`, `share.import_file`, `share.import_image`, and `share.list_inbox` model Share Extension ingestion into an app-owned inbox. The extension target still needs App Group wiring before other apps can send content into it.
 - `app.open_url` and `app.open_deeplink` use `UIApplication.open` for explicit user-visible navigation only.
+- `app_intents.list_supported_actions` and `app_intents.invoke_own_action` expose this app's own supported action list; `OpenAgentWorkspaceIntent` registers an App Shortcut for opening the workspace.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries

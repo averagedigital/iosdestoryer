@@ -54,6 +54,8 @@ struct ContentView: View {
   @State private var appURLString = "https://example.com"
   @State private var appDeepLinkString = "shortcuts://"
   @State private var appOpenStatus = ""
+  @State private var supportedAppActions: [SupportedAppAction] = []
+  @State private var appIntentStatus = ""
 
   var body: some View {
     NavigationStack {
@@ -165,6 +167,11 @@ struct ContentView: View {
               status: appOpenStatus,
               onOpenURLTapped: openAppURL,
               onOpenDeepLinkTapped: openAppDeepLink)
+            AppIntentSection(
+              actions: supportedAppActions,
+              status: appIntentStatus,
+              onListTapped: listSupportedAppActions,
+              onInvokeTapped: invokeFirstAppAction)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -810,6 +817,34 @@ struct ContentView: View {
         appOpenStatus = error.localizedDescription
         auditLog.record(toolName: "app.open_deeplink", summary: appOpenStatus, status: .failed)
       }
+    }
+  }
+
+  private func listSupportedAppActions() {
+    supportedAppActions = AppIntentService().listSupportedActions()
+    appIntentStatus = "\(supportedAppActions.count) action(s)"
+    auditLog.record(
+      toolName: "app_intents.list_supported_actions", summary: appIntentStatus,
+      status: .succeeded)
+  }
+
+  private func invokeFirstAppAction() {
+    guard let action = supportedAppActions.first else {
+      appIntentStatus = "No action selected"
+      auditLog.record(
+        toolName: "app_intents.invoke_own_action", summary: appIntentStatus, status: .failed)
+      return
+    }
+
+    do {
+      let invoked = try AppIntentService().invokeOwnAction(id: action.id)
+      appIntentStatus = invoked.action.title
+      auditLog.record(
+        toolName: "app_intents.invoke_own_action", summary: appIntentStatus, status: .succeeded)
+    } catch {
+      appIntentStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "app_intents.invoke_own_action", summary: appIntentStatus, status: .failed)
     }
   }
 
@@ -1515,6 +1550,43 @@ private struct AppURLSection: View {
           .font(.caption)
           .foregroundStyle(.secondary)
           .lineLimit(2)
+      }
+    }
+  }
+}
+
+private struct AppIntentSection: View {
+  let actions: [SupportedAppAction]
+  let status: String
+  let onListTapped: () -> Void
+  let onInvokeTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("App Intents")
+        .font(.headline)
+
+      HStack {
+        Button("List Actions", action: onListTapped)
+          .buttonStyle(.bordered)
+        Button("Invoke First", action: onInvokeTapped)
+          .buttonStyle(.bordered)
+          .disabled(actions.isEmpty)
+      }
+
+      if !status.isEmpty {
+        Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      ForEach(actions) { action in
+        VStack(alignment: .leading, spacing: 2) {
+          Text(action.title)
+          Text(action.summary)
+            .foregroundStyle(.secondary)
+        }
+        .font(.caption)
       }
     }
   }
