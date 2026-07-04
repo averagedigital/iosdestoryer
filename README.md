@@ -21,6 +21,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - `notify.schedule` and `notify.cancel` use UserNotifications after explicit permission.
 - `share.import_text`, `share.import_url`, `share.import_file`, `share.import_image`, and `share.list_inbox` model Share Extension ingestion into an app-owned inbox. The extension target still needs App Group wiring before other apps can send content into it.
+- `app.open_url` and `app.open_deeplink` use `UIApplication.open` for explicit user-visible navigation only.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries
@@ -31,6 +32,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - Calendar/reminders: EventKit `EKEventStore` searches events/reminders, saves requested items, and locates reminders by identifier before completion.
 - Notifications: UserNotifications schedules and cancels local notification requests after user permission.
 - Share: Share Extension ingestion is the supported path for content from other apps; the app reads only its own inbox, not third-party app containers.
+- URLs/deeplinks: `UIApplication.open` can open explicit URLs; the app does not depend on private schemes or claim third-party app control.
 - OCR: Vision text recognition is available through `VNRecognizeTextRequest` / `RecognizeTextRequest`.
 - App Intents: App Intents expose this app's own actions to Shortcuts, Siri, Spotlight, widgets, and system experiences. They are not arbitrary third-party app control.
 
@@ -49,6 +51,7 @@ Sources checked:
 - https://developer.apple.com/documentation/usernotifications/unusernotificationcenter
 - https://developer.apple.com/documentation/usernotifications/untimeintervalnotificationtrigger
 - https://developer.apple.com/app-extensions/
+- https://developer.apple.com/documentation/uikit/uiapplication/open(_:options:completionhandler:)
 - https://developer.apple.com/documentation/vision/recognizing-text-in-images
 - https://developer.apple.com/documentation/appintents
 

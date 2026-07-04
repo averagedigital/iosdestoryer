@@ -47,6 +47,8 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "share.import_file"))
     XCTAssertNotNil(registry.tool(named: "share.import_image"))
     XCTAssertNotNil(registry.tool(named: "share.list_inbox"))
+    XCTAssertNotNil(registry.tool(named: "app.open_url"))
+    XCTAssertNotNil(registry.tool(named: "app.open_deeplink"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }

@@ -51,6 +51,9 @@ struct ContentView: View {
   @State private var notificationBody = "Review the item"
   @State private var notificationDelaySeconds = 60.0
   @State private var scheduledNotificationID = ""
+  @State private var appURLString = "https://example.com"
+  @State private var appDeepLinkString = "shortcuts://"
+  @State private var appOpenStatus = ""
 
   var body: some View {
     NavigationStack {
@@ -156,6 +159,12 @@ struct ContentView: View {
               onPermissionTapped: requestNotificationPermission,
               onScheduleTapped: scheduleNotification,
               onCancelTapped: cancelNotification)
+            AppURLSection(
+              urlString: $appURLString,
+              deepLinkString: $appDeepLinkString,
+              status: appOpenStatus,
+              onOpenURLTapped: openAppURL,
+              onOpenDeepLinkTapped: openAppDeepLink)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -763,6 +772,45 @@ struct ContentView: View {
     auditLog.record(
       toolName: "notify.cancel", summary: scheduledNotificationID, status: .succeeded)
     scheduledNotificationID = ""
+  }
+
+  private func openAppURL() {
+    guard let url = URL(string: appURLString) else {
+      appOpenStatus = "Invalid URL"
+      auditLog.record(toolName: "app.open_url", summary: appOpenStatus, status: .failed)
+      return
+    }
+
+    Task {
+      do {
+        let opened = try await AppURLService().openURL(url)
+        appOpenStatus = opened.url.absoluteString
+        auditLog.record(toolName: "app.open_url", summary: appOpenStatus, status: .succeeded)
+      } catch {
+        appOpenStatus = error.localizedDescription
+        auditLog.record(toolName: "app.open_url", summary: appOpenStatus, status: .failed)
+      }
+    }
+  }
+
+  private func openAppDeepLink() {
+    guard let url = URL(string: appDeepLinkString) else {
+      appOpenStatus = "Invalid deeplink"
+      auditLog.record(toolName: "app.open_deeplink", summary: appOpenStatus, status: .failed)
+      return
+    }
+
+    Task {
+      do {
+        let opened = try await AppURLService().openDeepLink(url)
+        appOpenStatus = opened.url.absoluteString
+        auditLog.record(
+          toolName: "app.open_deeplink", summary: appOpenStatus, status: .succeeded)
+      } catch {
+        appOpenStatus = error.localizedDescription
+        auditLog.record(toolName: "app.open_deeplink", summary: appOpenStatus, status: .failed)
+      }
+    }
   }
 
   private var importsDirectory: URL {
@@ -1435,6 +1483,38 @@ private struct NotificationSection: View {
           .font(.caption)
           .foregroundStyle(.secondary)
           .lineLimit(1)
+      }
+    }
+  }
+}
+
+private struct AppURLSection: View {
+  @Binding var urlString: String
+  @Binding var deepLinkString: String
+  let status: String
+  let onOpenURLTapped: () -> Void
+  let onOpenDeepLinkTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("URLs")
+        .font(.headline)
+
+      TextField("https://example.com", text: $urlString)
+        .textFieldStyle(.roundedBorder)
+      Button("Open URL", action: onOpenURLTapped)
+        .buttonStyle(.bordered)
+
+      TextField("app://path", text: $deepLinkString)
+        .textFieldStyle(.roundedBorder)
+      Button("Open Deeplink", action: onOpenDeepLinkTapped)
+        .buttonStyle(.bordered)
+
+      if !status.isEmpty {
+        Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
       }
     }
   }
