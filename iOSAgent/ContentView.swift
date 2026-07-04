@@ -68,6 +68,9 @@ struct ContentView: View {
   @State private var audioRecordSeconds = 5.0
   @State private var latestRecording: AudioRecording?
   @State private var speechTranscript = ""
+  @State private var localModelText = "water supply contract"
+  @State private var localModelStatus = ""
+  @State private var localModelClassification: LocalModelClassification?
 
   var body: some View {
     NavigationStack {
@@ -199,6 +202,14 @@ struct ContentView: View {
               onPermissionTapped: requestAudioSpeechPermissions,
               onRecordTapped: recordAudio,
               onTranscribeTapped: transcribeLatestRecording)
+            LocalModelSection(
+              text: $localModelText,
+              status: localModelStatus,
+              classification: localModelClassification,
+              onAvailabilityTapped: checkLocalModelAvailability,
+              onClassifyTapped: classifyLocalText,
+              onSummarizeTapped: summarizeLocalText,
+              onEmbedTapped: embedLocalText)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -1081,6 +1092,58 @@ struct ContentView: View {
         auditLog.record(
           toolName: "speech.transcribe", summary: error.localizedDescription, status: .failed)
       }
+    }
+  }
+
+  private func checkLocalModelAvailability() {
+    let availability = LocalModelService().availability()
+    localModelStatus =
+      "classify: \(availability.classify.isAvailable ? "available" : "unavailable"); summarize/embed: unavailable"
+    auditLog.record(
+      toolName: "local_model.availability", summary: localModelStatus, status: .succeeded)
+  }
+
+  private func classifyLocalText() {
+    do {
+      let result = try LocalModelService().classify(localModelText)
+      localModelClassification = result
+      localModelStatus = "\(result.label) \(Int(result.confidence * 100))%"
+      auditLog.record(
+        toolName: "local_model.classify_if_available", summary: localModelStatus,
+        status: .succeeded)
+    } catch {
+      localModelStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "local_model.classify_if_available", summary: localModelStatus,
+        status: .failed)
+    }
+  }
+
+  private func summarizeLocalText() {
+    do {
+      localModelStatus = try LocalModelService().summarize(localModelText)
+      auditLog.record(
+        toolName: "local_model.summarize_if_available", summary: localModelStatus,
+        status: .succeeded)
+    } catch {
+      localModelStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "local_model.summarize_if_available", summary: localModelStatus,
+        status: .failed)
+    }
+  }
+
+  private func embedLocalText() {
+    do {
+      let embedding = try LocalModelService().embed(localModelText)
+      localModelStatus = "\(embedding.count) dimensions"
+      auditLog.record(
+        toolName: "local_model.embed_if_available", summary: localModelStatus,
+        status: .succeeded)
+    } catch {
+      localModelStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "local_model.embed_if_available", summary: localModelStatus, status: .failed)
     }
   }
 
@@ -2041,6 +2104,54 @@ private struct AudioSpeechSection: View {
         Text(transcript)
           .font(.caption)
           .lineLimit(3)
+      }
+    }
+  }
+}
+
+private struct LocalModelSection: View {
+  @Binding var text: String
+  let status: String
+  let classification: LocalModelClassification?
+  let onAvailabilityTapped: () -> Void
+  let onClassifyTapped: () -> Void
+  let onSummarizeTapped: () -> Void
+  let onEmbedTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Local Models")
+        .font(.headline)
+
+      Text("Runs only on device. Summarize/embed stay unavailable until a local model is bundled.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
+      TextField("Text", text: $text, axis: .vertical)
+        .textFieldStyle(.roundedBorder)
+        .lineLimit(2...4)
+
+      HStack {
+        Button("Availability", action: onAvailabilityTapped)
+          .buttonStyle(.bordered)
+        Button("Classify", action: onClassifyTapped)
+          .buttonStyle(.bordered)
+        Button("Summarize", action: onSummarizeTapped)
+          .buttonStyle(.bordered)
+        Button("Embed", action: onEmbedTapped)
+          .buttonStyle(.bordered)
+      }
+
+      if let classification {
+        Text("\(classification.label) \(Int(classification.confidence * 100))%")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      if !status.isEmpty {
+        Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
     }
   }

@@ -35,6 +35,7 @@
 		1000000000000000000000B5 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B1 /* ShareViewController.swift */; };
 		1000000000000000000000B6 /* ShareInboxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000009B /* ShareInboxService.swift */; };
 		1000000000000000000000B7 /* AgentShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000B0 /* AgentShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1000000000000000000000C4 /* LocalModelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000000000000000000C5 /* LocalModelService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +81,7 @@
 		1000000000000000000000B1 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		1000000000000000000000B2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1000000000000000000000B3 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		1000000000000000000000C5 /* LocalModelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalModelService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -138,6 +140,7 @@
 				100000000000000000000017 /* FileSearchService.swift */,
 				10000000000000000000002C /* FileSourceService.swift */,
 				100000000000000000000091 /* LocalIndexService.swift */,
+				1000000000000000000000C5 /* LocalModelService.swift */,
 				100000000000000000000099 /* NotificationService.swift */,
 				100000000000000000000019 /* OCRService.swift */,
 				100000000000000000000093 /* PhotoLibraryService.swift */,
@@ -302,6 +305,7 @@
 				100000000000000000000006 /* FileSearchService.swift in Sources */,
 				10000000000000000000002B /* FileSourceService.swift in Sources */,
 				100000000000000000000090 /* LocalIndexService.swift in Sources */,
+				1000000000000000000000C4 /* LocalModelService.swift in Sources */,
 				100000000000000000000098 /* NotificationService.swift in Sources */,
 				100000000000000000000008 /* OCRService.swift in Sources */,
 				100000000000000000000092 /* PhotoLibraryService.swift in Sources */,

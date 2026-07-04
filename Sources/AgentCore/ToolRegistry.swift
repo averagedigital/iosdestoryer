@@ -126,6 +126,15 @@ public struct ToolRegistry: Sendable {
         appleFrameworks: ["AppIntents"]),
       AgentTool(name: "audio.record", domain: .audio, appleFrameworks: ["AVFoundation"]),
       AgentTool(name: "speech.transcribe", domain: .audio, appleFrameworks: ["Speech"]),
+      AgentTool(
+        name: "local_model.summarize_if_available", domain: .localModels,
+        appleFrameworks: ["NaturalLanguage", "CoreML", "FoundationModels"]),
+      AgentTool(
+        name: "local_model.classify_if_available", domain: .localModels,
+        appleFrameworks: ["NaturalLanguage"]),
+      AgentTool(
+        name: "local_model.embed_if_available", domain: .localModels,
+        appleFrameworks: ["CoreML", "FoundationModels"]),
     ])
   }
 }
@@ -167,4 +176,5 @@ public enum ToolDomain: String, CaseIterable, Sendable {
   case vision = "Vision"
   case appIntents = "App Intents"
   case audio = "Audio"
+  case localModels = "Local Models"
 }

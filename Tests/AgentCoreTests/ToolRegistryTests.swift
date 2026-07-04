@@ -57,6 +57,9 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "shortcuts.run_user_configured_shortcut"))
     XCTAssertNotNil(registry.tool(named: "audio.record"))
     XCTAssertNotNil(registry.tool(named: "speech.transcribe"))
+    XCTAssertNotNil(registry.tool(named: "local_model.summarize_if_available"))
+    XCTAssertNotNil(registry.tool(named: "local_model.classify_if_available"))
+    XCTAssertNotNil(registry.tool(named: "local_model.embed_if_available"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }
