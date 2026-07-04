@@ -19,6 +19,7 @@
 		100000000000000000000092 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000093 /* PhotoLibraryService.swift */; };
 		100000000000000000000094 /* ContactLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000095 /* ContactLibraryService.swift */; };
 		100000000000000000000096 /* EventKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000097 /* EventKitService.swift */; };
+		100000000000000000000098 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000099 /* NotificationService.swift */; };
 		100000000000000000000025 /* ContactPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000026 /* ContactPermissionService.swift */; };
 		100000000000000000000027 /* EventPermissionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000028 /* EventPermissionService.swift */; };
 		100000000000000000000029 /* FileReadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000000000000000000002A /* FileReadService.swift */; };
@@ -45,6 +46,7 @@
 		100000000000000000000093 /* PhotoLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryService.swift; sourceTree = "<group>"; };
 		100000000000000000000095 /* ContactLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactLibraryService.swift; sourceTree = "<group>"; };
 		100000000000000000000097 /* EventKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitService.swift; sourceTree = "<group>"; };
+		100000000000000000000099 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		100000000000000000000024 /* PhotoPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000026 /* ContactPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPermissionService.swift; sourceTree = "<group>"; };
 		100000000000000000000028 /* EventPermissionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventPermissionService.swift; sourceTree = "<group>"; };
@@ -85,6 +87,7 @@
 				100000000000000000000017 /* FileSearchService.swift */,
 				10000000000000000000002C /* FileSourceService.swift */,
 				100000000000000000000091 /* LocalIndexService.swift */,
+				100000000000000000000099 /* NotificationService.swift */,
 				100000000000000000000019 /* OCRService.swift */,
 				100000000000000000000093 /* PhotoLibraryService.swift */,
 				100000000000000000000024 /* PhotoPermissionService.swift */,
@@ -194,6 +197,7 @@
 				100000000000000000000006 /* FileSearchService.swift in Sources */,
 				10000000000000000000002B /* FileSourceService.swift in Sources */,
 				100000000000000000000090 /* LocalIndexService.swift in Sources */,
+				100000000000000000000098 /* NotificationService.swift in Sources */,
 				100000000000000000000008 /* OCRService.swift in Sources */,
 				100000000000000000000092 /* PhotoLibraryService.swift in Sources */,
 				100000000000000000000009 /* PhotoPermissionService.swift in Sources */,

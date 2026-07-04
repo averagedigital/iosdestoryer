@@ -44,6 +44,11 @@ struct ContentView: View {
   @State private var reminderTitle = "New reminder"
   @State private var reminders: [ReminderSummary] = []
   @State private var eventKitPreview = ""
+  @State private var notificationPermissionStatus = "Not Checked"
+  @State private var notificationTitle = "Reminder"
+  @State private var notificationBody = "Review the item"
+  @State private var notificationDelaySeconds = 60.0
+  @State private var scheduledNotificationID = ""
 
   var body: some View {
     NavigationStack {
@@ -136,6 +141,15 @@ struct ContentView: View {
               onCalendarDeletePreviewTapped: previewCalendarEventDelete,
               onReminderUpdatePreviewTapped: previewReminderUpdate,
               onReminderCompleteTapped: completeReminder)
+            NotificationSection(
+              status: notificationPermissionStatus,
+              title: $notificationTitle,
+              notificationBody: $notificationBody,
+              delaySeconds: $notificationDelaySeconds,
+              scheduledID: scheduledNotificationID,
+              onPermissionTapped: requestNotificationPermission,
+              onScheduleTapped: scheduleNotification,
+              onCancelTapped: cancelNotification)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -687,6 +701,50 @@ struct ContentView: View {
           toolName: "reminders.complete", summary: error.localizedDescription, status: .failed)
       }
     }
+  }
+
+  private func requestNotificationPermission() {
+    Task {
+      do {
+        let granted = try await NotificationService().requestPermission()
+        notificationPermissionStatus = granted ? "Granted" : "Denied"
+        auditLog.record(
+          toolName: "notify.permission", summary: notificationPermissionStatus,
+          status: granted ? .succeeded : .failed)
+      } catch {
+        notificationPermissionStatus = "Failed"
+        auditLog.record(
+          toolName: "notify.permission", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func scheduleNotification() {
+    let id = UUID().uuidString
+    let draft = NotificationDraft(
+      id: id,
+      title: notificationTitle,
+      body: notificationBody,
+      delaySeconds: notificationDelaySeconds)
+    Task {
+      do {
+        let scheduled = try await NotificationService().schedule(draft)
+        scheduledNotificationID = scheduled.id
+        auditLog.record(
+          toolName: "notify.schedule", summary: scheduled.title, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "notify.schedule", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func cancelNotification() {
+    guard !scheduledNotificationID.isEmpty else { return }
+    NotificationService().cancel(id: scheduledNotificationID)
+    auditLog.record(
+      toolName: "notify.cancel", summary: scheduledNotificationID, status: .succeeded)
+    scheduledNotificationID = ""
   }
 
   private var importsDirectory: URL {
@@ -1273,6 +1331,53 @@ private struct EventKitSection: View {
       ForEach(reminders) { reminder in
         Text(reminder.isCompleted ? "\(reminder.title) - done" : reminder.title)
           .font(.caption)
+          .lineLimit(1)
+      }
+    }
+  }
+}
+
+private struct NotificationSection: View {
+  let status: String
+  @Binding var title: String
+  @Binding var notificationBody: String
+  @Binding var delaySeconds: Double
+  let scheduledID: String
+  let onPermissionTapped: () -> Void
+  let onScheduleTapped: () -> Void
+  let onCancelTapped: () -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Notifications")
+        .font(.headline)
+
+      HStack {
+        Button("Permission", action: onPermissionTapped)
+          .buttonStyle(.bordered)
+        Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      TextField("Title", text: $title)
+        .textFieldStyle(.roundedBorder)
+      TextField("Body", text: $notificationBody)
+        .textFieldStyle(.roundedBorder)
+      Stepper("Delay \(Int(delaySeconds))s", value: $delaySeconds, in: 5...3600, step: 5)
+
+      HStack {
+        Button("Schedule", action: onScheduleTapped)
+          .buttonStyle(.bordered)
+        Button("Cancel", action: onCancelTapped)
+          .buttonStyle(.bordered)
+          .disabled(scheduledID.isEmpty)
+      }
+
+      if !scheduledID.isEmpty {
+        Text(scheduledID)
+          .font(.caption)
+          .foregroundStyle(.secondary)
           .lineLimit(1)
       }
     }

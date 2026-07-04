@@ -87,6 +87,12 @@ public struct ToolRegistry: Sendable {
       AgentTool(
         name: "reminders.update_with_preview", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "reminders.complete", domain: .calendar, appleFrameworks: ["EventKit"]),
+      AgentTool(
+        name: "notify.schedule", domain: .notifications,
+        appleFrameworks: ["UserNotifications"]),
+      AgentTool(
+        name: "notify.cancel", domain: .notifications,
+        appleFrameworks: ["UserNotifications"]),
       AgentTool(name: "vision.ocr_image", domain: .vision, appleFrameworks: ["Vision"]),
       AgentTool(
         name: "app_intents.list_supported_actions", domain: .appIntents,
@@ -126,6 +132,7 @@ public enum ToolDomain: String, CaseIterable, Sendable {
   case photos = "Photos"
   case contacts = "Contacts"
   case calendar = "Calendar"
+  case notifications = "Notifications"
   case vision = "Vision"
   case appIntents = "App Intents"
 }
