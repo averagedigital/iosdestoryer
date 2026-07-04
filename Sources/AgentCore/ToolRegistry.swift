@@ -17,6 +17,8 @@ public struct ToolRegistry: Sendable {
         name: "files.pick_file", domain: .files,
         appleFrameworks: ["UIKit", "UniformTypeIdentifiers"]),
       AgentTool(name: "files.pick_folder", domain: .files, appleFrameworks: ["UIKit"]),
+      AgentTool(
+        name: "files.list_allowed_sources", domain: .files, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.read", domain: .files, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.search", domain: .index, appleFrameworks: ["Foundation"]),
       AgentTool(name: "files.context_bundle", domain: .index, appleFrameworks: ["Foundation"]),

@@ -8,6 +8,7 @@ struct ContentView: View {
   @State private var isImportingFile = false
   @State private var isImportingOCRImage = false
   @State private var importedFileName: String?
+  @State private var allowedSources: [AllowedFileSource] = []
   @State private var fileSearchQuery = ""
   @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
   @State private var readFileText = ""
@@ -29,11 +30,13 @@ struct ContentView: View {
               isUser: false)
             FileImportSection(
               importedFileName: importedFileName,
+              allowedSources: allowedSources,
               searchQuery: $fileSearchQuery,
               searchReport: fileSearchReport,
               readFileText: readFileText,
               contextBundleMarkdown: contextBundleMarkdown,
               onImportTapped: { isImportingFile = true },
+              onSourcesTapped: listAllowedSources,
               onSearchTapped: searchImportedFiles,
               onReadTapped: readFile,
               onBundleTapped: buildContextBundle)
@@ -107,6 +110,22 @@ struct ContentView: View {
       importedFileName = nil
       auditLog.record(
         toolName: "files.pick_file", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func listAllowedSources() {
+    do {
+      allowedSources = try FileSourceService(importsDirectory: importsDirectory)
+        .listAllowedSources()
+      auditLog.record(
+        toolName: "files.list_allowed_sources",
+        summary: "\(allowedSources.count) sources",
+        status: .succeeded)
+    } catch {
+      allowedSources = []
+      auditLog.record(
+        toolName: "files.list_allowed_sources", summary: error.localizedDescription,
+        status: .failed)
     }
   }
 
@@ -268,11 +287,13 @@ private struct ToolSection: View {
 
 private struct FileImportSection: View {
   let importedFileName: String?
+  let allowedSources: [AllowedFileSource]
   @Binding var searchQuery: String
   let searchReport: FileSearchReport
   let readFileText: String
   let contextBundleMarkdown: String
   let onImportTapped: () -> Void
+  let onSourcesTapped: () -> Void
   let onSearchTapped: () -> Void
   let onReadTapped: (FileSearchResult) -> Void
   let onBundleTapped: () -> Void
@@ -291,8 +312,19 @@ private struct FileImportSection: View {
       }
       .buttonStyle(.borderedProminent)
 
+      Button(action: onSourcesTapped) {
+        Label("Allowed Sources", systemImage: "folder")
+      }
+      .buttonStyle(.bordered)
+
       if let importedFileName {
         Text("Selected: \(importedFileName)")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      ForEach(allowedSources) { source in
+        Text("\(source.name): \(source.url.lastPathComponent)")
           .font(.caption)
           .foregroundStyle(.secondary)
       }
