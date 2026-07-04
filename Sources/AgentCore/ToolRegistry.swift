@@ -88,6 +88,9 @@ public struct ToolRegistry: Sendable {
         name: "reminders.update_with_preview", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "reminders.complete", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(
+        name: "notify.permission_status", domain: .notifications,
+        appleFrameworks: ["UserNotifications"]),
+      AgentTool(
         name: "notify.permission", domain: .notifications,
         appleFrameworks: ["UserNotifications"]),
       AgentTool(

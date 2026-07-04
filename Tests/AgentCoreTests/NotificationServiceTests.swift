@@ -3,6 +3,14 @@ import XCTest
 @testable import AgentCore
 
 final class NotificationServiceTests: XCTestCase {
+  func testReadsPermissionStatusThroughProvider() async {
+    let service = NotificationService(provider: StubNotificationProvider())
+
+    let status = await service.permissionStatus()
+
+    XCTAssertEqual(status, .authorized)
+  }
+
   func testRequestsPermissionThroughProvider() async throws {
     let service = NotificationService(provider: StubNotificationProvider())
 
@@ -46,6 +54,10 @@ final class NotificationServiceTests: XCTestCase {
 
 private final class StubNotificationProvider: NotificationProviding {
   var cancelledIDs: [String] = []
+
+  func permissionStatus() async -> NotificationPermissionStatus {
+    .authorized
+  }
 
   func requestPermission() async throws -> Bool {
     true

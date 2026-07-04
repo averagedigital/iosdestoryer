@@ -198,6 +198,7 @@ struct ContentView: View {
               notificationBody: $notificationBody,
               delaySeconds: $notificationDelaySeconds,
               scheduledID: scheduledNotificationID,
+              onStatusTapped: checkNotificationPermission,
               onPermissionTapped: requestNotificationPermission,
               onScheduleTapped: scheduleNotification,
               onCancelTapped: cancelNotification)
@@ -1268,6 +1269,16 @@ struct ContentView: View {
       "calendar.delete_event_with_preview"
     case .updateReminder:
       "reminders.update_with_preview"
+    }
+  }
+
+  private func checkNotificationPermission() {
+    Task {
+      let status = await NotificationService().permissionStatus()
+      notificationPermissionStatus = status.rawValue
+      auditLog.record(
+        toolName: "notify.permission_status", summary: notificationPermissionStatus,
+        status: .succeeded)
     }
   }
 
@@ -2510,6 +2521,7 @@ private struct NotificationSection: View {
   @Binding var notificationBody: String
   @Binding var delaySeconds: Double
   let scheduledID: String
+  let onStatusTapped: () -> Void
   let onPermissionTapped: () -> Void
   let onScheduleTapped: () -> Void
   let onCancelTapped: () -> Void
@@ -2520,7 +2532,9 @@ private struct NotificationSection: View {
         .font(.headline)
 
       HStack {
-        Button("Permission", action: onPermissionTapped)
+        Button("Status", action: onStatusTapped)
+          .buttonStyle(.bordered)
+        Button("Request", action: onPermissionTapped)
           .buttonStyle(.bordered)
         Text(status)
           .font(.caption)

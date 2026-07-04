@@ -11,6 +11,10 @@ public struct NotificationService {
     self.provider = provider
   }
 
+  public func permissionStatus() async -> NotificationPermissionStatus {
+    await provider.permissionStatus()
+  }
+
   public func requestPermission() async throws -> Bool {
     try await provider.requestPermission()
   }
@@ -28,9 +32,20 @@ public struct NotificationService {
 }
 
 public protocol NotificationProviding {
+  func permissionStatus() async -> NotificationPermissionStatus
   func requestPermission() async throws -> Bool
   func schedule(_ draft: NotificationDraft) async throws -> ScheduledNotification
   func cancel(id: String)
+}
+
+public enum NotificationPermissionStatus: String, Equatable, Sendable {
+  case notDetermined
+  case denied
+  case authorized
+  case provisional
+  case ephemeral
+  case unknown
+  case unavailable
 }
 
 public struct NotificationDraft: Equatable, Sendable {
@@ -67,6 +82,11 @@ public enum NotificationServiceError: Error, Equatable {
   public struct UserNotificationProvider: NotificationProviding {
     public init() {}
 
+    public func permissionStatus() async -> NotificationPermissionStatus {
+      let settings = await UNUserNotificationCenter.current().notificationSettings()
+      return NotificationPermissionStatus(settings.authorizationStatus)
+    }
+
     public func requestPermission() async throws -> Bool {
       try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
@@ -94,9 +114,32 @@ public enum NotificationServiceError: Error, Equatable {
       UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
     }
   }
+
+  extension NotificationPermissionStatus {
+    fileprivate init(_ status: UNAuthorizationStatus) {
+      switch status {
+      case .notDetermined:
+        self = .notDetermined
+      case .denied:
+        self = .denied
+      case .authorized:
+        self = .authorized
+      case .provisional:
+        self = .provisional
+      case .ephemeral:
+        self = .ephemeral
+      @unknown default:
+        self = .unknown
+      }
+    }
+  }
 #else
   public struct UserNotificationProvider: NotificationProviding {
     public init() {}
+
+    public func permissionStatus() async -> NotificationPermissionStatus {
+      .unavailable
+    }
 
     public func requestPermission() async throws -> Bool {
       false
