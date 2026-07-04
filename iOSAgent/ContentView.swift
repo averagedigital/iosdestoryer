@@ -30,6 +30,12 @@ struct ContentView: View {
   @State private var contactResults: [ContactSummary] = []
   @State private var calendarPermissionStatus = "Not Checked"
   @State private var reminderPermissionStatus = "Not Checked"
+  @State private var calendarQuery = ""
+  @State private var calendarEventTitle = "New event"
+  @State private var calendarEvents: [CalendarEventSummary] = []
+  @State private var reminderQuery = ""
+  @State private var reminderTitle = "New reminder"
+  @State private var reminders: [ReminderSummary] = []
 
   var body: some View {
     NavigationStack {
@@ -88,8 +94,18 @@ struct ContentView: View {
             EventKitSection(
               calendarStatus: calendarPermissionStatus,
               reminderStatus: reminderPermissionStatus,
+              calendarQuery: $calendarQuery,
+              calendarEventTitle: $calendarEventTitle,
+              calendarEvents: calendarEvents,
+              reminderQuery: $reminderQuery,
+              reminderTitle: $reminderTitle,
+              reminders: reminders,
               onCalendarTapped: checkCalendarPermission,
-              onRemindersTapped: checkReminderPermission)
+              onRemindersTapped: checkReminderPermission,
+              onCalendarSearchTapped: searchCalendarEvents,
+              onCalendarCreateTapped: createCalendarEvent,
+              onReminderSearchTapped: searchReminders,
+              onReminderCreateTapped: createReminder)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -413,6 +429,77 @@ struct ContentView: View {
     reminderPermissionStatus = status.displayName
     auditLog.record(
       toolName: "reminders.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func searchCalendarEvents() {
+    Task {
+      do {
+        let now = Date()
+        calendarEvents = try await EventKitService().searchEvents(
+          calendarQuery,
+          from: now.addingTimeInterval(-30 * 24 * 60 * 60),
+          to: now.addingTimeInterval(365 * 24 * 60 * 60))
+        auditLog.record(
+          toolName: "calendar.search_events", summary: "\(calendarEvents.count) events",
+          status: .succeeded)
+      } catch {
+        calendarEvents = []
+        auditLog.record(
+          toolName: "calendar.search_events", summary: error.localizedDescription,
+          status: .failed)
+      }
+    }
+  }
+
+  private func createCalendarEvent() {
+    let startDate = Date().addingTimeInterval(60 * 60)
+    let draft = CalendarEventDraft(
+      title: calendarEventTitle,
+      notes: "",
+      startDate: startDate,
+      endDate: startDate.addingTimeInterval(60 * 60))
+
+    Task {
+      do {
+        let event = try await EventKitService().createEvent(draft)
+        calendarEvents = [event]
+        auditLog.record(
+          toolName: "calendar.create_event", summary: event.title, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "calendar.create_event", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func searchReminders() {
+    Task {
+      do {
+        reminders = try await EventKitService().searchReminders(reminderQuery)
+        auditLog.record(
+          toolName: "reminders.search", summary: "\(reminders.count) reminders",
+          status: .succeeded)
+      } catch {
+        reminders = []
+        auditLog.record(
+          toolName: "reminders.search", summary: error.localizedDescription, status: .failed)
+      }
+    }
+  }
+
+  private func createReminder() {
+    Task {
+      do {
+        let reminder = try await EventKitService().createReminder(
+          ReminderDraft(title: reminderTitle, notes: "", dueDate: nil))
+        reminders = [reminder]
+        auditLog.record(
+          toolName: "reminders.create", summary: reminder.title, status: .succeeded)
+      } catch {
+        auditLog.record(
+          toolName: "reminders.create", summary: error.localizedDescription, status: .failed)
+      }
+    }
   }
 
   private var importsDirectory: URL {
@@ -808,8 +895,18 @@ private struct ContactsSection: View {
 private struct EventKitSection: View {
   let calendarStatus: String
   let reminderStatus: String
+  @Binding var calendarQuery: String
+  @Binding var calendarEventTitle: String
+  let calendarEvents: [CalendarEventSummary]
+  @Binding var reminderQuery: String
+  @Binding var reminderTitle: String
+  let reminders: [ReminderSummary]
   let onCalendarTapped: () -> Void
   let onRemindersTapped: () -> Void
+  let onCalendarSearchTapped: () -> Void
+  let onCalendarCreateTapped: () -> Void
+  let onReminderSearchTapped: () -> Void
+  let onReminderCreateTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -827,6 +924,23 @@ private struct EventKitSection: View {
           .foregroundStyle(.secondary)
       }
 
+      TextField("Calendar search", text: $calendarQuery)
+        .textFieldStyle(.roundedBorder)
+      TextField("Event title", text: $calendarEventTitle)
+        .textFieldStyle(.roundedBorder)
+      HStack {
+        Button("Search Events", action: onCalendarSearchTapped)
+          .buttonStyle(.bordered)
+        Button("Create Event", action: onCalendarCreateTapped)
+          .buttonStyle(.bordered)
+      }
+
+      ForEach(calendarEvents) { event in
+        Text(event.title)
+          .font(.caption)
+          .lineLimit(1)
+      }
+
       HStack {
         Button(action: onRemindersTapped) {
           Label("Reminders", systemImage: "checklist")
@@ -836,6 +950,23 @@ private struct EventKitSection: View {
         Text(reminderStatus)
           .font(.caption)
           .foregroundStyle(.secondary)
+      }
+
+      TextField("Reminder search", text: $reminderQuery)
+        .textFieldStyle(.roundedBorder)
+      TextField("Reminder title", text: $reminderTitle)
+        .textFieldStyle(.roundedBorder)
+      HStack {
+        Button("Search Reminders", action: onReminderSearchTapped)
+          .buttonStyle(.bordered)
+        Button("Create Reminder", action: onReminderCreateTapped)
+          .buttonStyle(.bordered)
+      }
+
+      ForEach(reminders) { reminder in
+        Text(reminder.title)
+          .font(.caption)
+          .lineLimit(1)
       }
     }
   }

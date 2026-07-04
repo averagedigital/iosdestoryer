@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>iOS Agent uses calendar access to search events and create events you request.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>iOS Agent uses reminders access to search reminders and create reminders you request.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

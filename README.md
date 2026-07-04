@@ -18,7 +18,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `photos.permission_status` inspectable PhotoKit authorization status without reading assets.
 - `photos.list_assets`, `photos.find_screenshots`, `photos.find_documents`, and `photos.classify_candidates` read PhotoKit asset metadata after Photos authorization.
 - `contacts.permission_status`, `contacts.search`, and `contacts.find_duplicate_candidates` inspect and search Contacts data after Contacts authorization.
-- `calendar.permission_status` and `reminders.permission_status` inspectable EventKit authorization status without reading events or reminders.
+- `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `reminders.permission_status`, `reminders.search`, and `reminders.create` use EventKit after explicit authorization.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
 
 ## Verified Apple API Boundaries

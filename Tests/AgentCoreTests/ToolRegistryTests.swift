@@ -24,6 +24,10 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "photos.classify_candidates"))
     XCTAssertNotNil(registry.tool(named: "contacts.search"))
     XCTAssertNotNil(registry.tool(named: "contacts.find_duplicate_candidates"))
+    XCTAssertNotNil(registry.tool(named: "calendar.search_events"))
+    XCTAssertNotNil(registry.tool(named: "calendar.create_event"))
+    XCTAssertNotNil(registry.tool(named: "reminders.search"))
+    XCTAssertNotNil(registry.tool(named: "reminders.create"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }
