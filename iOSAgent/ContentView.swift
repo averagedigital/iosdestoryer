@@ -23,6 +23,7 @@ struct ContentView: View {
   @State private var allowedSources: [AllowedFileSource] = []
   @State private var fileWriteName = "note.txt"
   @State private var fileWriteText = ""
+  @State private var fileDestinationPath = "copy.txt"
   @State private var fileOperationStatus = ""
   @State private var fileSearchQuery = ""
   @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
@@ -97,6 +98,7 @@ struct ContentView: View {
               allowedSources: allowedSources,
               fileWriteName: $fileWriteName,
               fileWriteText: $fileWriteText,
+              fileDestinationPath: $fileDestinationPath,
               fileOperationStatus: fileOperationStatus,
               searchQuery: $fileSearchQuery,
               searchReport: fileSearchReport,
@@ -109,6 +111,9 @@ struct ContentView: View {
               onWriteTapped: writeTextFile,
               onSearchTapped: searchImportedFiles,
               onReadTapped: readFile,
+              onCopyTapped: copyFile,
+              onMoveTapped: moveFile,
+              onExtractTapped: extractText,
               onDeletePreviewTapped: previewDelete,
               onConfirmDeleteTapped: confirmDelete,
               onBundleTapped: buildContextBundle)
@@ -396,6 +401,47 @@ struct ContentView: View {
     } catch {
       readFileText = ""
       auditLog.record(toolName: "files.read", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func copyFile(_ result: FileSearchResult) {
+    do {
+      let copied = try FileOperationService(rootDirectory: importsDirectory)
+        .copy(from: relativePath(for: result.url), to: fileDestinationPath)
+      fileOperationStatus = "Copied to \(copied.filename)"
+      auditLog.record(toolName: "files.copy", summary: copied.filename, status: .succeeded)
+    } catch {
+      fileOperationStatus = error.localizedDescription
+      auditLog.record(toolName: "files.copy", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func moveFile(_ result: FileSearchResult) {
+    do {
+      let moved = try FileOperationService(rootDirectory: importsDirectory)
+        .move(from: relativePath(for: result.url), to: fileDestinationPath)
+      fileSearchReport = FileSearchReport(
+        matches: fileSearchReport.matches.map { $0.url == result.url ? moved : $0 },
+        skippedFiles: fileSearchReport.skippedFiles)
+      fileOperationStatus = "Moved to \(moved.filename)"
+      auditLog.record(toolName: "files.move", summary: moved.filename, status: .succeeded)
+    } catch {
+      fileOperationStatus = error.localizedDescription
+      auditLog.record(toolName: "files.move", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func extractText(_ result: FileSearchResult) {
+    do {
+      let document = try FileOperationService(rootDirectory: importsDirectory)
+        .extractText(from: relativePath(for: result.url))
+      readFileText = document.text
+      auditLog.record(
+        toolName: "files.extract_text", summary: document.filename, status: .succeeded)
+    } catch {
+      readFileText = ""
+      auditLog.record(
+        toolName: "files.extract_text", summary: error.localizedDescription, status: .failed)
     }
   }
 
@@ -1713,6 +1759,7 @@ private struct FileImportSection: View {
   let allowedSources: [AllowedFileSource]
   @Binding var fileWriteName: String
   @Binding var fileWriteText: String
+  @Binding var fileDestinationPath: String
   let fileOperationStatus: String
   @Binding var searchQuery: String
   let searchReport: FileSearchReport
@@ -1725,6 +1772,9 @@ private struct FileImportSection: View {
   let onWriteTapped: () -> Void
   let onSearchTapped: () -> Void
   let onReadTapped: (FileSearchResult) -> Void
+  let onCopyTapped: (FileSearchResult) -> Void
+  let onMoveTapped: (FileSearchResult) -> Void
+  let onExtractTapped: (FileSearchResult) -> Void
   let onDeletePreviewTapped: (FileSearchResult) -> Void
   let onConfirmDeleteTapped: () -> Void
   let onBundleTapped: () -> Void
@@ -1794,19 +1844,41 @@ private struct FileImportSection: View {
           .disabled(searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
       }
 
+      TextField("Copy/move destination inside Imports", text: $fileDestinationPath)
+        .textFieldStyle(.roundedBorder)
+
       ForEach(searchReport.matches) { result in
-        HStack {
+        VStack(alignment: .leading, spacing: 6) {
           Button(result.filename) {
             onReadTapped(result)
           }
           .font(.caption)
 
-          Spacer()
+          HStack {
+            Button("Extract") {
+              onExtractTapped(result)
+            }
+            .font(.caption)
 
-          Button("Preview Delete", role: .destructive) {
-            onDeletePreviewTapped(result)
+            Button("Copy") {
+              onCopyTapped(result)
+            }
+            .font(.caption)
+            .disabled(fileDestinationPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+            Button("Move") {
+              onMoveTapped(result)
+            }
+            .font(.caption)
+            .disabled(fileDestinationPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+            Spacer()
+
+            Button("Preview Delete", role: .destructive) {
+              onDeletePreviewTapped(result)
+            }
+            .font(.caption)
           }
-          .font(.caption)
         }
       }
 
