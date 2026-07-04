@@ -7,6 +7,8 @@ struct ContentView: View {
   @State private var auditLog = AuditLog()
   @State private var isImportingFile = false
   @State private var importedFileName: String?
+  @State private var fileSearchQuery = ""
+  @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
 
   var body: some View {
     NavigationStack {
@@ -19,7 +21,10 @@ struct ContentView: View {
               isUser: false)
             FileImportSection(
               importedFileName: importedFileName,
-              onImportTapped: { isImportingFile = true })
+              searchQuery: $fileSearchQuery,
+              searchReport: fileSearchReport,
+              onImportTapped: { isImportingFile = true },
+              onSearchTapped: searchImportedFiles)
             ToolSection(registry: registry)
             AuditSection(entries: auditLog.entries)
           }
@@ -70,6 +75,21 @@ struct ContentView: View {
       importedFileName = nil
       auditLog.record(
         toolName: "files.pick_file", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func searchImportedFiles() {
+    do {
+      let report = try FileSearchService(rootDirectory: importsDirectory).search(
+        query: fileSearchQuery)
+      fileSearchReport = report
+      auditLog.record(
+        toolName: "files.search", summary: "\(report.matches.count) matches",
+        status: .succeeded)
+    } catch {
+      fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
+      auditLog.record(
+        toolName: "files.search", summary: error.localizedDescription, status: .failed)
     }
   }
 
@@ -126,7 +146,10 @@ private struct ToolSection: View {
 
 private struct FileImportSection: View {
   let importedFileName: String?
+  @Binding var searchQuery: String
+  let searchReport: FileSearchReport
   let onImportTapped: () -> Void
+  let onSearchTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -144,6 +167,25 @@ private struct FileImportSection: View {
 
       if let importedFileName {
         Text("Selected: \(importedFileName)")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      HStack {
+        TextField("Search imported files", text: $searchQuery)
+          .textFieldStyle(.roundedBorder)
+        Button("Search", action: onSearchTapped)
+          .buttonStyle(.bordered)
+          .disabled(searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+      }
+
+      ForEach(searchReport.matches) { result in
+        Text(result.filename)
+          .font(.caption)
+      }
+
+      if !searchReport.skippedFiles.isEmpty {
+        Text("\(searchReport.skippedFiles.count) non-text file skipped")
           .font(.caption)
           .foregroundStyle(.secondary)
       }
