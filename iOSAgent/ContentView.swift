@@ -2467,12 +2467,20 @@ private struct IndexSection: View {
       Text("Local Index")
         .font(.headline)
 
+      HStack(spacing: 8) {
+        AgentStatusPill(text: "\(index.chunks.count) chunks", systemImage: "doc.text")
+          .monospacedDigit()
+        AgentStatusPill(text: "\(indexedFileCount) files", systemImage: "folder")
+          .monospacedDigit()
+        AgentStatusPill(
+          text: "\(index.skippedFiles.count) skipped", systemImage: "exclamationmark.triangle"
+        )
+        .monospacedDigit()
+      }
+
       HStack {
         Button("Rebuild Index", action: onRebuildTapped)
           .buttonStyle(.bordered)
-        Text("\(index.chunks.count) chunks")
-          .font(.caption)
-          .foregroundStyle(.secondary)
       }
 
       if index.chunks.isEmpty {
@@ -2517,6 +2525,10 @@ private struct IndexSection: View {
           .foregroundStyle(.secondary)
       }
     }
+  }
+
+  private var indexedFileCount: Int {
+    Set(index.chunks.map(\.filename)).count
   }
 }
 
