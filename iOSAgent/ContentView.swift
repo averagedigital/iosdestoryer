@@ -81,13 +81,12 @@ struct ContentView: View {
 
   var body: some View {
     NavigationStack {
-      VStack(spacing: 0) {
+      TabView {
+        ChatScreen(message: $message, onSendTapped: sendMessage)
+          .tabItem { Label("Chat", systemImage: "bubble.left.and.bubble.right") }
+
         ScrollView {
           LazyVStack(alignment: .leading, spacing: 14) {
-            ChatBubble(
-              text:
-                "Ask me to work with a file you import from Files, photos you choose, contacts, calendar items, OCR, or your app shortcuts. I will preview risky changes first.",
-              isUser: false)
             FileImportSection(
               importedFileName: importedFileName,
               allowedSources: allowedSources,
@@ -113,14 +112,6 @@ struct ContentView: View {
               status: shareInboxStatus,
               onRefreshTapped: refreshShareInbox,
               onImportTapped: importSharedInboxItem)
-            IndexSection(
-              index: localIndex,
-              query: $indexQuery,
-              results: indexResults,
-              bundleMarkdown: indexBundleMarkdown,
-              onRebuildTapped: rebuildIndex,
-              onSearchTapped: searchIndex,
-              onExportTapped: exportIndexBundle)
             VisionSection(
               ocrText: ocrText,
               barcodeText: barcodeText,
@@ -196,6 +187,42 @@ struct ContentView: View {
               onPermissionTapped: requestNotificationPermission,
               onScheduleTapped: scheduleNotification,
               onCancelTapped: cancelNotification)
+            AudioSpeechSection(
+              permissionStatus: audioPermissionStatus,
+              durationSeconds: $audioRecordSeconds,
+              recording: latestRecording,
+              transcript: speechTranscript,
+              onPermissionTapped: requestAudioSpeechPermissions,
+              onRecordTapped: recordAudio,
+              onTranscribeTapped: transcribeLatestRecording)
+          }
+          .padding()
+        }
+        .tabItem { Label("Sources", systemImage: "folder.badge.gearshape") }
+
+        ScrollView {
+          LazyVStack(alignment: .leading, spacing: 14) {
+            IndexSection(
+              index: localIndex,
+              query: $indexQuery,
+              results: indexResults,
+              bundleMarkdown: indexBundleMarkdown,
+              onRebuildTapped: rebuildIndex,
+              onSearchTapped: searchIndex,
+              onExportTapped: exportIndexBundle)
+          }
+          .padding()
+        }
+        .tabItem { Label("Index", systemImage: "doc.text.magnifyingglass") }
+
+        ScrollView {
+          AuditSection(entries: auditLog.entries)
+            .padding()
+        }
+        .tabItem { Label("Audit", systemImage: "list.bullet.clipboard") }
+
+        ScrollView {
+          LazyVStack(alignment: .leading, spacing: 14) {
             AppURLSection(
               urlString: $appURLString,
               deepLinkString: $appDeepLinkString,
@@ -210,14 +237,6 @@ struct ContentView: View {
               onListTapped: listSupportedAppActions,
               onInvokeTapped: invokeFirstAppAction,
               onRunShortcutTapped: runConfiguredShortcut)
-            AudioSpeechSection(
-              permissionStatus: audioPermissionStatus,
-              durationSeconds: $audioRecordSeconds,
-              recording: latestRecording,
-              transcript: speechTranscript,
-              onPermissionTapped: requestAudioSpeechPermissions,
-              onRecordTapped: recordAudio,
-              onTranscribeTapped: transcribeLatestRecording)
             LocalModelSection(
               text: $localModelText,
               status: localModelStatus,
@@ -226,23 +245,12 @@ struct ContentView: View {
               onClassifyTapped: classifyLocalText,
               onSummarizeTapped: summarizeLocalText,
               onEmbedTapped: embedLocalText)
+            PrivacySection()
             ToolSection(registry: registry)
-            AuditSection(entries: auditLog.entries)
           }
           .padding()
         }
-
-        HStack(spacing: 10) {
-          TextField("Message", text: $message, axis: .vertical)
-            .textFieldStyle(.roundedBorder)
-            .lineLimit(1...4)
-
-          Button("Send", action: sendMessage)
-            .buttonStyle(.borderedProminent)
-            .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        }
-        .padding()
-        .background(.regularMaterial)
+        .tabItem { Label("Settings", systemImage: "lock.shield") }
       }
       .navigationTitle("iOS Agent")
       .fileImporter(
@@ -1440,6 +1448,56 @@ private struct ChatBubble: View {
       .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
       .background(isUser ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.12))
       .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+  }
+}
+
+private struct ChatScreen: View {
+  @Binding var message: String
+  let onSendTapped: () -> Void
+
+  var body: some View {
+    VStack(spacing: 0) {
+      ScrollView {
+        LazyVStack(alignment: .leading, spacing: 14) {
+          ChatBubble(
+            text:
+              "Ask me to work with imported files, photos, contacts, calendar items, OCR, audio, or app shortcuts. I will preview risky changes first.",
+            isUser: false)
+        }
+        .padding()
+      }
+
+      HStack(spacing: 10) {
+        TextField("Message", text: $message, axis: .vertical)
+          .textFieldStyle(.roundedBorder)
+          .lineLimit(1...4)
+
+        Button("Send", action: onSendTapped)
+          .buttonStyle(.borderedProminent)
+          .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+      }
+      .padding()
+      .background(.regularMaterial)
+    }
+  }
+}
+
+private struct PrivacySection: View {
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Privacy")
+        .font(.headline)
+      Text(
+        "Local-first: imported files, shared items, index chunks, recordings, and audit entries stay in this app unless you export or share them."
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      Text(
+        "No third-party app containers are read, and no arbitrary iPhone GUI control is attempted."
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+    }
   }
 }
 

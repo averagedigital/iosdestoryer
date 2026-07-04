@@ -6,6 +6,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 
 - Empty repository was scaffolded minimally.
 - SwiftUI app shell: chat input, tool list, and audit section.
+- The app uses separate SwiftUI tabs for Chat, Sources/Permissions, Index, Audit, and Settings/Privacy.
 - Chat input routes obvious local requests to existing app-local tools and records the selected tool call in the audit log.
 - `AgentCore` Swift package: tool registry and audit log.
 - `files.pick_file` core import service: copies a user-picked file into the app container and keeps same-name imports instead of overwriting.
