@@ -47,6 +47,7 @@ struct ContentView: View {
   @State private var contactPhone = ""
   @State private var contactResults: [ContactSummary] = []
   @State private var contactPreview: String = ""
+  @State private var pendingContactPreview: ContactChangePreview?
   @State private var calendarPermissionStatus = "Not Checked"
   @State private var reminderPermissionStatus = "Not Checked"
   @State private var calendarQuery = ""
@@ -151,13 +152,15 @@ struct ContentView: View {
               phone: $contactPhone,
               contacts: contactResults,
               preview: contactPreview,
+              hasPendingPreview: pendingContactPreview != nil,
               onCheckTapped: checkContactPermission,
               onSearchTapped: searchContacts,
               onDuplicatesTapped: findDuplicateContacts,
               onCreateTapped: createContact,
               onUpdatePreviewTapped: previewContactUpdate,
               onDeletePreviewTapped: previewContactDelete,
-              onMergePreviewTapped: previewContactMerge)
+              onMergePreviewTapped: previewContactMerge,
+              onConfirmPreviewTapped: confirmContactPreview)
             EventKitSection(
               calendarStatus: calendarPermissionStatus,
               reminderStatus: reminderPermissionStatus,
@@ -814,12 +817,14 @@ struct ContentView: View {
     do {
       contactResults = try ContactLibraryService().search(contactQuery)
       contactPreview = ""
+      pendingContactPreview = nil
       auditLog.record(
         toolName: "contacts.search", summary: "\(contactResults.count) contacts",
         status: .succeeded)
     } catch {
       contactResults = []
       contactPreview = ""
+      pendingContactPreview = nil
       auditLog.record(
         toolName: "contacts.search", summary: error.localizedDescription, status: .failed)
     }
@@ -829,6 +834,7 @@ struct ContentView: View {
     do {
       contactResults = try ContactLibraryService().findDuplicateCandidates()
       contactPreview = ""
+      pendingContactPreview = nil
       auditLog.record(
         toolName: "contacts.find_duplicate_candidates",
         summary: "\(contactResults.count) candidates",
@@ -846,6 +852,7 @@ struct ContentView: View {
       let contact = try ContactLibraryService().create(contactDraft)
       contactResults = [contact]
       contactPreview = ""
+      pendingContactPreview = nil
       auditLog.record(
         toolName: "contacts.create", summary: contact.displayLabel, status: .succeeded)
     } catch {
@@ -857,6 +864,7 @@ struct ContentView: View {
   private func previewContactUpdate() {
     guard let contact = contactResults.first else { return }
     let preview = ContactLibraryService().updatePreview(contact: contact, draft: contactDraft)
+    pendingContactPreview = preview
     contactPreview = preview.summary
     auditLog.record(
       toolName: "contacts.update_with_preview", summary: preview.summary,
@@ -866,6 +874,7 @@ struct ContentView: View {
   private func previewContactDelete() {
     guard let contact = contactResults.first else { return }
     let preview = ContactLibraryService().deletePreview(contact: contact)
+    pendingContactPreview = preview
     contactPreview = preview.summary
     auditLog.record(
       toolName: "contacts.delete_with_preview", summary: preview.summary,
@@ -875,10 +884,44 @@ struct ContentView: View {
   private func previewContactMerge() {
     let preview = ContactLibraryService().mergePreview(contacts: contactResults)
     guard let contact = preview.mergedContact else { return }
+    pendingContactPreview = nil
     contactPreview =
       "Merge \(preview.duplicateContactIDs.count) into \(contact.displayLabel)"
     auditLog.record(
       toolName: "contacts.merge_preview", summary: contactPreview, status: .needsConfirmation)
+  }
+
+  private func confirmContactPreview() {
+    guard let preview = pendingContactPreview else { return }
+    do {
+      let updated = try ContactLibraryService().apply(preview)
+      pendingContactPreview = nil
+      contactPreview = "Confirmed: \(preview.summary)"
+      switch preview.action {
+      case .update:
+        if let updated {
+          contactResults = contactResults.map { $0.id == updated.id ? updated : $0 }
+        }
+      case .delete:
+        contactResults.removeAll { $0.id == preview.contactID }
+      }
+      auditLog.record(
+        toolName: contactToolName(for: preview.action), summary: preview.summary,
+        status: .succeeded)
+    } catch {
+      auditLog.record(
+        toolName: contactToolName(for: preview.action), summary: error.localizedDescription,
+        status: .failed)
+    }
+  }
+
+  private func contactToolName(for action: ContactChangeAction) -> String {
+    switch action {
+    case .update:
+      "contacts.update_with_preview"
+    case .delete:
+      "contacts.delete_with_preview"
+    }
   }
 
   private func checkCalendarPermission() {
@@ -1851,6 +1894,7 @@ private struct ContactsSection: View {
   @Binding var phone: String
   let contacts: [ContactSummary]
   let preview: String
+  let hasPendingPreview: Bool
   let onCheckTapped: () -> Void
   let onSearchTapped: () -> Void
   let onDuplicatesTapped: () -> Void
@@ -1858,6 +1902,7 @@ private struct ContactsSection: View {
   let onUpdatePreviewTapped: () -> Void
   let onDeletePreviewTapped: () -> Void
   let onMergePreviewTapped: () -> Void
+  let onConfirmPreviewTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -1910,6 +1955,10 @@ private struct ContactsSection: View {
         Text(preview)
           .font(.caption)
           .foregroundStyle(.secondary)
+        if hasPendingPreview {
+          Button("Confirm", role: .destructive, action: onConfirmPreviewTapped)
+            .buttonStyle(.borderedProminent)
+        }
       }
 
       ForEach(contacts) { contact in

@@ -70,6 +70,28 @@ final class ContactLibraryTests: XCTestCase {
     XCTAssertEqual(preview.mergedContact?.phoneNumbers, ["+1 555 0100"])
     XCTAssertEqual(preview.mergedContact?.emailAddresses, ["ivan@example.com"])
   }
+
+  func testAppliesUpdateAndDeletePreviewsThroughProvider() throws {
+    let provider = StubContactProvider(contacts: sampleContacts)
+    let service = ContactLibraryService(provider: provider)
+    let draft = ContactDraft(
+      givenName: "Ivan",
+      familyName: "Updated",
+      organizationName: "Legal",
+      phoneNumber: "+1 555 0199",
+      emailAddress: "updated@example.com")
+
+    let updated = try service.apply(
+      service.updatePreview(contact: sampleContacts[0], draft: draft))
+    let deleted = try service.apply(service.deletePreview(contact: sampleContacts[1]))
+
+    XCTAssertEqual(updated?.id, "1")
+    XCTAssertEqual(updated?.familyName, "Updated")
+    XCTAssertNil(deleted)
+    XCTAssertEqual(provider.updatedID, "1")
+    XCTAssertEqual(provider.updatedDraft, draft)
+    XCTAssertEqual(provider.deletedID, "2")
+  }
 }
 
 private let sampleContacts = [
@@ -96,8 +118,15 @@ private let sampleContacts = [
     emailAddresses: ["ivan@example.com"]),
 ]
 
-private struct StubContactProvider: ContactProviding {
+private final class StubContactProvider: ContactProviding {
   let contacts: [ContactSummary]
+  var updatedID = ""
+  var updatedDraft: ContactDraft?
+  var deletedID = ""
+
+  init(contacts: [ContactSummary]) {
+    self.contacts = contacts
+  }
 
   func fetchContacts() throws -> [ContactSummary] {
     contacts
@@ -111,5 +140,21 @@ private struct StubContactProvider: ContactProviding {
       organizationName: draft.organizationName,
       phoneNumbers: draft.phoneNumber.isEmpty ? [] : [draft.phoneNumber],
       emailAddresses: draft.emailAddress.isEmpty ? [] : [draft.emailAddress])
+  }
+
+  func updateContact(id: String, draft: ContactDraft) throws -> ContactSummary {
+    updatedID = id
+    updatedDraft = draft
+    return ContactSummary(
+      id: id,
+      givenName: draft.givenName,
+      familyName: draft.familyName,
+      organizationName: draft.organizationName,
+      phoneNumbers: draft.phoneNumber.isEmpty ? [] : [draft.phoneNumber],
+      emailAddresses: draft.emailAddress.isEmpty ? [] : [draft.emailAddress])
+  }
+
+  func deleteContact(id: String) throws {
+    deletedID = id
   }
 }

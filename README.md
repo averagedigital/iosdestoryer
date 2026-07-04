@@ -23,6 +23,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `photos.list_assets`, `photos.find_screenshots`, `photos.find_documents`, `photos.classify_candidates`, `photos.create_album`, `photos.add_to_album`, `photos.favorite`, `photos.remove_from_album_with_preview`, `photos.hide_with_preview`, and `photos.delete_with_preview` use PhotoKit after Photos authorization.
 - Photo destructive tools require a preview first, then a separate Confirm action applies the stored preview through PhotoKit change requests.
 - `contacts.permission_status`, `contacts.search`, `contacts.create`, `contacts.update_with_preview`, `contacts.delete_with_preview`, `contacts.find_duplicate_candidates`, and `contacts.merge_preview` use Contacts after explicit authorization.
+- Contact update/delete tools require a preview first, then a separate Confirm action applies the stored preview through Contacts save requests.
 - `calendar.permission_status`, `calendar.search_events`, `calendar.create_event`, `calendar.update_event_with_preview`, `calendar.delete_event_with_preview`, `reminders.permission_status`, `reminders.search`, `reminders.create`, `reminders.update_with_preview`, and `reminders.complete` use EventKit after explicit authorization.
 - `notify.schedule` and `notify.cancel` use UserNotifications after explicit permission.
 - `AgentShareExtension` receives shared text, URLs, images, and files through the iOS share sheet, then writes them into the shared App Group inbox for `share.list_inbox`.

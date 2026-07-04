@@ -56,7 +56,8 @@ public struct ContactLibraryService {
       contactID: contact.id,
       summary: "Update \(contact.displayLabel) to \(draft.displayLabel)",
       before: contact.displayLabel,
-      after: draft.displayLabel)
+      after: draft.displayLabel,
+      draft: draft)
   }
 
   public func deletePreview(contact: ContactSummary) -> ContactChangePreview {
@@ -66,6 +67,19 @@ public struct ContactLibraryService {
       summary: "Delete \(contact.displayLabel)",
       before: contact.displayLabel,
       after: "")
+  }
+
+  public func apply(_ preview: ContactChangePreview) throws -> ContactSummary? {
+    switch preview.action {
+    case .update:
+      guard let draft = preview.draft else {
+        throw ContactLibraryError.missingDraft
+      }
+      return try provider.updateContact(id: preview.contactID, draft: draft)
+    case .delete:
+      try provider.deleteContact(id: preview.contactID)
+      return nil
+    }
   }
 
   public func mergePreview(contacts: [ContactSummary]) -> ContactMergePreview {
@@ -95,6 +109,8 @@ public struct ContactLibraryService {
 public protocol ContactProviding {
   func fetchContacts() throws -> [ContactSummary]
   func createContact(_ draft: ContactDraft) throws -> ContactSummary
+  func updateContact(id: String, draft: ContactDraft) throws -> ContactSummary
+  func deleteContact(id: String) throws
 }
 
 public struct ContactDraft: Equatable, Sendable {
@@ -131,11 +147,35 @@ public struct ContactChangePreview: Equatable, Sendable {
   public let summary: String
   public let before: String
   public let after: String
+  public let draft: ContactDraft?
+
+  public init(
+    action: ContactChangeAction,
+    contactID: String,
+    summary: String,
+    before: String,
+    after: String,
+    draft: ContactDraft? = nil
+  ) {
+    self.action = action
+    self.contactID = contactID
+    self.summary = summary
+    self.before = before
+    self.after = after
+    self.draft = draft
+  }
 }
 
 public enum ContactChangeAction: String, Sendable {
   case update
   case delete
+}
+
+public enum ContactLibraryError: Error, Equatable {
+  case missingDraft
+  case contactNotFound(String)
+  case mutableContactUnavailable(String)
+  case contactsUnavailable
 }
 
 public struct ContactMergePreview: Equatable, Sendable {
@@ -190,27 +230,11 @@ public struct ContactSummary: Equatable, Identifiable, Sendable {
     public init() {}
 
     public func fetchContacts() throws -> [ContactSummary] {
-      let keys =
-        [
-          CNContactIdentifierKey,
-          CNContactGivenNameKey,
-          CNContactFamilyNameKey,
-          CNContactOrganizationNameKey,
-          CNContactPhoneNumbersKey,
-          CNContactEmailAddressesKey,
-        ] as [CNKeyDescriptor]
-      let request = CNContactFetchRequest(keysToFetch: keys)
+      let request = CNContactFetchRequest(keysToFetch: contactKeys())
       var contacts: [ContactSummary] = []
 
       try CNContactStore().enumerateContacts(with: request) { contact, _ in
-        contacts.append(
-          ContactSummary(
-            id: contact.identifier,
-            givenName: contact.givenName,
-            familyName: contact.familyName,
-            organizationName: contact.organizationName,
-            phoneNumbers: contact.phoneNumbers.map { $0.value.stringValue },
-            emailAddresses: contact.emailAddresses.map { String($0.value) }))
+        contacts.append(ContactSummary(contact: contact))
       }
 
       return contacts
@@ -218,26 +242,85 @@ public struct ContactSummary: Equatable, Identifiable, Sendable {
 
     public func createContact(_ draft: ContactDraft) throws -> ContactSummary {
       let contact = CNMutableContact()
-      contact.givenName = draft.givenName
-      contact.familyName = draft.familyName
-      contact.organizationName = draft.organizationName
-      if !draft.phoneNumber.isEmpty {
-        contact.phoneNumbers = [
-          CNLabeledValue(
-            label: CNLabelPhoneNumberMobile, value: CNPhoneNumber(stringValue: draft.phoneNumber))
-        ]
-      }
-      if !draft.emailAddress.isEmpty {
-        contact.emailAddresses = [
-          CNLabeledValue(label: CNLabelHome, value: draft.emailAddress as NSString)
-        ]
-      }
+      apply(draft, to: contact)
 
       let request = CNSaveRequest()
       request.add(contact, toContainerWithIdentifier: nil)
       try CNContactStore().execute(request)
 
-      return ContactSummary(
+      return ContactSummary(contact: contact)
+    }
+
+    public func updateContact(id: String, draft: ContactDraft) throws -> ContactSummary {
+      let store = CNContactStore()
+      let sourceContact = try fetchContact(id: id, store: store)
+      guard let contact = sourceContact.mutableCopy() as? CNMutableContact else {
+        throw ContactLibraryError.mutableContactUnavailable(id)
+      }
+      apply(draft, to: contact)
+
+      let request = CNSaveRequest()
+      request.update(contact)
+      try store.execute(request)
+
+      return ContactSummary(contact: contact)
+    }
+
+    public func deleteContact(id: String) throws {
+      let store = CNContactStore()
+      let sourceContact = try fetchContact(id: id, store: store)
+      guard let contact = sourceContact.mutableCopy() as? CNMutableContact else {
+        throw ContactLibraryError.mutableContactUnavailable(id)
+      }
+
+      let request = CNSaveRequest()
+      request.delete(contact)
+      try store.execute(request)
+    }
+
+    private func fetchContact(id: String, store: CNContactStore) throws -> CNContact {
+      let predicate = CNContact.predicateForContacts(withIdentifiers: [id])
+      let contacts = try store.unifiedContacts(matching: predicate, keysToFetch: contactKeys())
+      guard let contact = contacts.first else {
+        throw ContactLibraryError.contactNotFound(id)
+      }
+      return contact
+    }
+
+    private func apply(_ draft: ContactDraft, to contact: CNMutableContact) {
+      contact.givenName = draft.givenName
+      contact.familyName = draft.familyName
+      contact.organizationName = draft.organizationName
+      contact.phoneNumbers =
+        draft.phoneNumber.isEmpty
+        ? []
+        : [
+          CNLabeledValue(
+            label: CNLabelPhoneNumberMobile, value: CNPhoneNumber(stringValue: draft.phoneNumber))
+        ]
+      contact.emailAddresses =
+        draft.emailAddress.isEmpty
+        ? []
+        : [
+          CNLabeledValue(label: CNLabelHome, value: draft.emailAddress as NSString)
+        ]
+    }
+  }
+
+  private func contactKeys() -> [CNKeyDescriptor] {
+    [
+      CNContactIdentifierKey,
+      CNContactGivenNameKey,
+      CNContactFamilyNameKey,
+      CNContactOrganizationNameKey,
+      CNContactPhoneNumbersKey,
+      CNContactEmailAddressesKey,
+    ] as [CNKeyDescriptor]
+  }
+
+  extension ContactSummary {
+    fileprivate init(contact: CNContact) {
+      self.init(
         id: contact.identifier,
         givenName: contact.givenName,
         familyName: contact.familyName,
@@ -262,6 +345,14 @@ public struct ContactSummary: Equatable, Identifiable, Sendable {
         organizationName: draft.organizationName,
         phoneNumbers: draft.phoneNumber.isEmpty ? [] : [draft.phoneNumber],
         emailAddresses: draft.emailAddress.isEmpty ? [] : [draft.emailAddress])
+    }
+
+    public func updateContact(id: String, draft: ContactDraft) throws -> ContactSummary {
+      throw ContactLibraryError.contactsUnavailable
+    }
+
+    public func deleteContact(id: String) throws {
+      throw ContactLibraryError.contactsUnavailable
     }
   }
 #endif
