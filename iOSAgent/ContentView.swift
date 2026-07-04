@@ -536,8 +536,11 @@ struct ContentView: View {
     chatItems.append(.user(text))
     auditLog.record(toolName: "agent.chat", summary: text, status: .succeeded)
     if let route = commandRouter.route(text) {
-      chatItems.append(.tool(toolName: route.toolName, request: text, status: "Queued"))
-      runAgentRoute(route, message: text)
+      let result = runAgentRoute(route, message: text)
+      chatItems.append(
+        .tool(
+          toolName: route.toolName, request: text, status: result.status,
+          result: result.summary))
     } else {
       chatItems.append(.assistant("No local tool matched."))
       auditLog.record(
@@ -546,7 +549,8 @@ struct ContentView: View {
     message = ""
   }
 
-  private func runAgentRoute(_ route: AgentCommandRoute, message: String) {
+  private func runAgentRoute(_ route: AgentCommandRoute, message: String) -> ChatToolResult {
+    let previousAuditCount = auditLog.entries.count
     switch route.toolName {
     case "index.search":
       indexQuery = message
@@ -556,26 +560,41 @@ struct ContentView: View {
     case "reminders.create":
       reminderTitle = message
       createReminder()
+      return .waiting("Creating reminder through EventKit.")
     case "notify.schedule":
       notificationTitle = message
       scheduleNotification()
+      return .waiting("Scheduling local notification.")
     case "contacts.create":
       contactGivenName = message
       createContact()
     case "camera.scan_document":
       scanDocument()
+      return latestRouteResult(route, after: previousAuditCount)
+        ?? .waiting("Opening document scanner.")
     case "photos.classify_candidates":
       classifyPhotoCandidates()
     case "audio.record":
       recordAudio()
+      return .waiting("Recording visible in-app audio.")
     case "shortcuts.run_user_configured_shortcut":
       runConfiguredShortcut()
+      return .waiting("Opening configured Shortcut URL.")
     case "local_model.classify_if_available":
       localModelText = message
       classifyLocalText()
     default:
       auditLog.record(
         toolName: route.toolName, summary: "Route not wired.", status: .failed)
+    }
+
+    return latestRouteResult(route, after: previousAuditCount)
+      ?? ChatToolResult(status: "Failed", summary: "No tool result recorded.")
+  }
+
+  private func latestRouteResult(_ route: AgentCommandRoute, after count: Int) -> ChatToolResult? {
+    auditLog.entries.dropFirst(count).last { $0.toolName == route.toolName }.map {
+      ChatToolResult(status: $0.status.chatLabel, summary: $0.summary)
     }
   }
 
@@ -1471,17 +1490,42 @@ private struct ChatTranscriptItem: Identifiable {
   let title: String
   let body: String
   let status: String
+  let result: String
 
   static func assistant(_ text: String) -> ChatTranscriptItem {
-    ChatTranscriptItem(kind: .assistant, title: "Agent", body: text, status: "")
+    ChatTranscriptItem(kind: .assistant, title: "Agent", body: text, status: "", result: "")
   }
 
   static func user(_ text: String) -> ChatTranscriptItem {
-    ChatTranscriptItem(kind: .user, title: "You", body: text, status: "")
+    ChatTranscriptItem(kind: .user, title: "You", body: text, status: "", result: "")
   }
 
-  static func tool(toolName: String, request: String, status: String) -> ChatTranscriptItem {
-    ChatTranscriptItem(kind: .tool, title: toolName, body: request, status: status)
+  static func tool(
+    toolName: String, request: String, status: String, result: String
+  ) -> ChatTranscriptItem {
+    ChatTranscriptItem(kind: .tool, title: toolName, body: request, status: status, result: result)
+  }
+}
+
+private struct ChatToolResult {
+  let status: String
+  let summary: String
+
+  static func waiting(_ summary: String) -> ChatToolResult {
+    ChatToolResult(status: "Waiting", summary: summary)
+  }
+}
+
+extension AuditStatus {
+  var chatLabel: String {
+    switch self {
+    case .succeeded:
+      "Done"
+    case .failed:
+      "Failed"
+    case .needsConfirmation:
+      "Confirm"
+    }
   }
 }
 
@@ -1541,6 +1585,10 @@ private struct ToolCallCard: View {
       Text("Source: app-local tool registry")
         .font(.caption)
         .foregroundStyle(.secondary)
+      if !item.result.isEmpty {
+        Text("Result: \(item.result)")
+          .font(.caption)
+      }
     }
     .padding(12)
     .frame(maxWidth: .infinity, alignment: .leading)
