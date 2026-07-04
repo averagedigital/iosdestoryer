@@ -101,7 +101,29 @@ Sources checked:
 - Share Extension ingestion must be checked from the iOS share sheet on a simulator/device.
 - App Intents and user-configured Shortcut execution must be checked from Shortcuts/Siri surfaces.
 
-Next feature should be a completion audit against the objective matrix, then only fill verified gaps.
+Next feature should fill only the remaining verified validation gaps.
+
+## Objective Matrix
+
+| Objective area | Status | Evidence / gap |
+| --- | --- | --- |
+| Native iOS app, public Apple APIs only | Implemented | SwiftUI app target, AgentCore package, no private API or GUI automation claim. |
+| Chat-like agent UI | Implemented | Chat tab has transcript, input, routed tool cards, and audit-backed statuses. |
+| Separate app screens | Implemented | Tabs: Chat, Sources, Index, Audit, Settings. |
+| Tool registry | Implemented | `ToolRegistry.defaultRegistry()` lists app-local tools by permission domain. |
+| Audit log | Implemented | Tool calls record ordered status entries and are shown in Audit. |
+| Files and local index | Implemented | Imports, app-managed file ops, text extraction, lexical index/search, context bundle. |
+| OCR, camera, barcode | Implemented with simulator limits | Image/PDF OCR, foreground camera/scanner UI, barcode detection; hardware camera needs device validation. |
+| Photos | Implemented with manual validation gap | Permission status/request, listing, candidates, albums, favorite, previewed remove/hide/delete. |
+| Contacts | Implemented with manual validation gap | Permission status/request, search/create, previewed update/delete/merge. |
+| Calendar and reminders | Implemented with manual validation gap | Permission status/request, search/create, previewed update/delete, reminder completion. |
+| Share Extension | Implemented with manual validation gap | Extension imports text, URL, file, image into App Group inbox; share sheet path still needs manual smoke. |
+| Notifications | Implemented with manual validation gap | Permission request, schedule, cancel. |
+| URLs, App Intents, Shortcuts | Implemented with manual validation gap | Explicit URL/deeplink open, own App Intent, user-configured Shortcut URL. |
+| Audio and speech | Implemented with manual validation gap | Visible in-app recording and on-device speech transcription after permission. |
+| Local models | Partial by design | NaturalLanguage classification works; summarize/embed return explicit unavailable until a model is bundled. |
+| Remote private-data boundary | Implemented | No remote model integration is present; local-only behavior by default. |
+| Simulator smoke | Passed | Build, install, launch, and screenshot passed on iPhone 17 / iOS 26.5 simulator. |
 
 ## Last Simulator Smoke
 
