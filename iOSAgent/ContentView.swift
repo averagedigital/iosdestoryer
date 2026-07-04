@@ -100,6 +100,26 @@ struct ContentView: View {
               systemImage: "folder.badge.gearshape"
             )
             .agentPanel()
+            PermissionOverviewSection(
+              items: [
+                PermissionOverviewItem(
+                  title: "Photos", value: photoPermissionStatus, systemImage: "photo.on.rectangle"),
+                PermissionOverviewItem(
+                  title: "Contacts", value: contactPermissionStatus,
+                  systemImage: "person.crop.circle"),
+                PermissionOverviewItem(
+                  title: "Calendar", value: calendarPermissionStatus, systemImage: "calendar"),
+                PermissionOverviewItem(
+                  title: "Reminders", value: reminderPermissionStatus, systemImage: "checklist"),
+                PermissionOverviewItem(
+                  title: "Notify", value: notificationPermissionStatus, systemImage: "bell.badge"),
+                PermissionOverviewItem(
+                  title: "Camera", value: cameraStatus, systemImage: "camera.viewfinder"),
+                PermissionOverviewItem(
+                  title: "Audio", value: audioPermissionStatus, systemImage: "waveform"),
+              ]
+            )
+            .agentPanel()
             FileImportSection(
               importedFileName: importedFileName,
               allowedSources: allowedSources,
@@ -1786,6 +1806,84 @@ private struct ScreenIntro: View {
           .foregroundStyle(.secondary)
       }
     }
+  }
+}
+
+private struct PermissionOverviewItem: Identifiable {
+  let id = UUID()
+  let title: String
+  let value: String
+  let systemImage: String
+}
+
+private struct PermissionOverviewSection: View {
+  let items: [PermissionOverviewItem]
+  private let columns = [
+    GridItem(.adaptive(minimum: 132), spacing: 8)
+  ]
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Permissions")
+            .font(.headline)
+          Text("Visible access state for every device domain.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        AgentStatusPill(text: "\(items.count)", systemImage: "lock.shield")
+          .monospacedDigit()
+      }
+
+      LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+        ForEach(items) { item in
+          PermissionStatusTile(item: item)
+        }
+      }
+    }
+  }
+}
+
+private struct PermissionStatusTile: View {
+  let item: PermissionOverviewItem
+
+  var body: some View {
+    HStack(spacing: 9) {
+      Image(systemName: item.systemImage)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 26, height: 26)
+        .background(AgentTheme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 1) {
+        Text(item.title)
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+        Text(displayValue)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+          .minimumScaleFactor(0.78)
+      }
+
+      Spacer(minLength: 0)
+    }
+    .padding(9)
+    .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
+
+  private var displayValue: String {
+    item.value.isEmpty ? "Not Checked" : item.value
   }
 }
 
