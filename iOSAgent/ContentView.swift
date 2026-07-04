@@ -10,6 +10,7 @@ struct ContentView: View {
   @State private var importedFileName: String?
   @State private var fileSearchQuery = ""
   @State private var fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
+  @State private var readFileText = ""
   @State private var contextBundleMarkdown = ""
   @State private var ocrText = ""
   @State private var photoPermissionStatus = "Not Checked"
@@ -30,9 +31,11 @@ struct ContentView: View {
               importedFileName: importedFileName,
               searchQuery: $fileSearchQuery,
               searchReport: fileSearchReport,
+              readFileText: readFileText,
               contextBundleMarkdown: contextBundleMarkdown,
               onImportTapped: { isImportingFile = true },
               onSearchTapped: searchImportedFiles,
+              onReadTapped: readFile,
               onBundleTapped: buildContextBundle)
             VisionSection(
               ocrText: ocrText,
@@ -112,13 +115,27 @@ struct ContentView: View {
       let report = try FileSearchService(rootDirectory: importsDirectory).search(
         query: fileSearchQuery)
       fileSearchReport = report
+      readFileText = ""
       auditLog.record(
         toolName: "files.search", summary: "\(report.matches.count) matches",
         status: .succeeded)
     } catch {
       fileSearchReport = FileSearchReport(matches: [], skippedFiles: [])
+      readFileText = ""
       auditLog.record(
         toolName: "files.search", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func readFile(_ result: FileSearchResult) {
+    do {
+      let document = try FileReadService().read(url: result.url)
+      readFileText = document.text
+      auditLog.record(
+        toolName: "files.read", summary: document.filename, status: .succeeded)
+    } catch {
+      readFileText = ""
+      auditLog.record(toolName: "files.read", summary: error.localizedDescription, status: .failed)
     }
   }
 
@@ -253,9 +270,11 @@ private struct FileImportSection: View {
   let importedFileName: String?
   @Binding var searchQuery: String
   let searchReport: FileSearchReport
+  let readFileText: String
   let contextBundleMarkdown: String
   let onImportTapped: () -> Void
   let onSearchTapped: () -> Void
+  let onReadTapped: (FileSearchResult) -> Void
   let onBundleTapped: () -> Void
 
   var body: some View {
@@ -287,8 +306,10 @@ private struct FileImportSection: View {
       }
 
       ForEach(searchReport.matches) { result in
-        Text(result.filename)
-          .font(.caption)
+        Button(result.filename) {
+          onReadTapped(result)
+        }
+        .font(.caption)
       }
 
       if !searchReport.skippedFiles.isEmpty {
@@ -300,6 +321,16 @@ private struct FileImportSection: View {
       if !searchReport.matches.isEmpty {
         Button("Build Context Bundle", action: onBundleTapped)
           .buttonStyle(.bordered)
+      }
+
+      if !readFileText.isEmpty {
+        Text(readFileText)
+          .font(.caption.monospaced())
+          .lineLimit(8)
+          .padding(8)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.secondary.opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
       }
 
       if !contextBundleMarkdown.isEmpty {
