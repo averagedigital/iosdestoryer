@@ -1796,6 +1796,13 @@ private struct ChatToolResult {
   }
 }
 
+private struct ChatSuggestion: Identifiable {
+  let id = UUID()
+  let title: String
+  let prompt: String
+  let systemImage: String
+}
+
 extension AuditStatus {
   var chatLabel: String {
     switch self {
@@ -1810,6 +1817,19 @@ extension AuditStatus {
 }
 
 private struct ChatScreen: View {
+  private let suggestions = [
+    ChatSuggestion(
+      title: "Find document", prompt: "найди документ по водоснабжению",
+      systemImage: "doc.text.magnifyingglass"),
+    ChatSuggestion(
+      title: "Scan act", prompt: "просканируй бумажный акт", systemImage: "doc.viewfinder"),
+    ChatSuggestion(
+      title: "Reminder", prompt: "поставь напоминание по договору", systemImage: "checklist"),
+    ChatSuggestion(
+      title: "Context bundle", prompt: "собери context bundle по теме",
+      systemImage: "shippingbox"),
+  ]
+
   let items: [ChatTranscriptItem]
   @Binding var message: String
   let onSendTapped: () -> Void
@@ -1838,6 +1858,20 @@ private struct ChatScreen: View {
               AgentStatusPill(text: "Local", systemImage: "iphone")
               AgentStatusPill(text: "Preview", systemImage: "checkmark.shield")
               AgentStatusPill(text: "Audit", systemImage: "clock.arrow.circlepath")
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+              HStack(spacing: 8) {
+                ForEach(suggestions) { suggestion in
+                  Button {
+                    message = suggestion.prompt
+                  } label: {
+                    Label(suggestion.title, systemImage: suggestion.systemImage)
+                  }
+                  .font(.caption.weight(.semibold))
+                  .buttonStyle(.bordered)
+                }
+              }
             }
           }
           .agentPanel()
