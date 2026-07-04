@@ -25,6 +25,26 @@ public struct AppURLService {
     return try await open(url, kind: .deepLink)
   }
 
+  public func runShortcut(named name: String, text: String? = nil) async throws -> OpenedURL {
+    let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedName.isEmpty else {
+      throw AppURLServiceError.blankShortcutName
+    }
+
+    var components = URLComponents()
+    components.scheme = "shortcuts"
+    components.host = "run-shortcut"
+    components.queryItems = [URLQueryItem(name: "name", value: trimmedName)]
+    if let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+      components.queryItems?.append(URLQueryItem(name: "input", value: "text"))
+      components.queryItems?.append(URLQueryItem(name: "text", value: text))
+    }
+    guard let url = components.url else {
+      throw AppURLServiceError.invalidShortcutURL
+    }
+    return try await open(url, kind: .shortcut)
+  }
+
   private func open(_ url: URL, kind: OpenedURL.Kind) async throws -> OpenedURL {
     let opened = await provider.open(url)
     guard opened else {
@@ -42,6 +62,7 @@ public struct OpenedURL: Equatable, Sendable {
   public enum Kind: String, Sendable {
     case url
     case deepLink
+    case shortcut
   }
 
   public let kind: Kind
@@ -56,6 +77,8 @@ public struct OpenedURL: Equatable, Sendable {
 public enum AppURLServiceError: Error, Equatable {
   case missingScheme
   case unsupportedScheme(String)
+  case blankShortcutName
+  case invalidShortcutURL
   case openRejected
 }
 

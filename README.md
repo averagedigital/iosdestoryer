@@ -32,6 +32,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - Shared inbox items can be imported into app-managed Files and the local index from the Sources UI.
 - `app.open_url` and `app.open_deeplink` use `UIApplication.open` for explicit user-visible navigation only.
 - `app_intents.list_supported_actions` and `app_intents.invoke_own_action` expose this app's own supported action list; `OpenAgentWorkspaceIntent` registers an App Shortcut for opening the workspace.
+- `shortcuts.run_user_configured_shortcut` opens a named user-created Shortcut through the official Shortcuts URL scheme; it does not control arbitrary third-party apps.
 - `audio.record` and `speech.transcribe` use AVFoundation and Speech after explicit user action and permission; transcription requires on-device recognition.
 - `local_model.classify_if_available` uses NaturalLanguage on device; `local_model.summarize_if_available` and `local_model.embed_if_available` return explicit unavailable results until a local Core ML/Foundation Models-backed model is bundled.
 - Tests cover the first contract: public Apple API tools only, destructive tools require preview, and audit events keep order.
@@ -49,6 +50,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - Camera/scanning: `UIImagePickerController` and `VNDocumentCameraViewController` present foreground camera UI; if unsupported, the app reports that explicitly.
 - Barcodes: Vision barcode detection returns structured payload/symbology/confidence results for selected images.
 - App Intents: App Intents expose this app's own actions to Shortcuts, Siri, Spotlight, widgets, and system experiences. They are not arbitrary third-party app control.
+- Shortcuts URL scheme: `shortcuts://run-shortcut` can run a named shortcut from the user's Shortcuts collection.
 - Speech/audio: AVFoundation records only after a visible app action and microphone permission; Speech transcription requires explicit speech permission and on-device recognition.
 - Local models: NaturalLanguage can classify text locally; Core ML requires a bundled/downloaded model; Foundation Models access is availability-gated and must not imply remote private-data export.
 
@@ -76,6 +78,7 @@ Sources checked:
 - https://developer.apple.com/documentation/visionkit/vndocumentcameraviewcontroller
 - https://developer.apple.com/documentation/vision/detectbarcodesrequest
 - https://developer.apple.com/documentation/appintents
+- https://support.apple.com/guide/shortcuts/run-a-shortcut-from-a-url-apd624386f42/ios
 - https://developer.apple.com/documentation/avfaudio/avaudiorecorder
 - https://developer.apple.com/documentation/speech/sfspeechrecognizer
 - https://developer.apple.com/documentation/naturallanguage/nllanguagerecognizer

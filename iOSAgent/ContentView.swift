@@ -68,6 +68,8 @@ struct ContentView: View {
   @State private var appDeepLinkString = "shortcuts://"
   @State private var appOpenStatus = ""
   @State private var supportedAppActions: [SupportedAppAction] = []
+  @State private var shortcutName = "Daily Review"
+  @State private var shortcutInputText = ""
   @State private var appIntentStatus = ""
   @State private var audioPermissionStatus = "Not Checked"
   @State private var audioRecordSeconds = 5.0
@@ -202,9 +204,12 @@ struct ContentView: View {
               onOpenDeepLinkTapped: openAppDeepLink)
             AppIntentSection(
               actions: supportedAppActions,
+              shortcutName: $shortcutName,
+              shortcutInputText: $shortcutInputText,
               status: appIntentStatus,
               onListTapped: listSupportedAppActions,
-              onInvokeTapped: invokeFirstAppAction)
+              onInvokeTapped: invokeFirstAppAction,
+              onRunShortcutTapped: runConfiguredShortcut)
             AudioSpeechSection(
               permissionStatus: audioPermissionStatus,
               durationSeconds: $audioRecordSeconds,
@@ -1241,6 +1246,24 @@ struct ContentView: View {
     }
   }
 
+  private func runConfiguredShortcut() {
+    Task {
+      do {
+        let opened = try await AppURLService().runShortcut(
+          named: shortcutName, text: shortcutInputText)
+        appIntentStatus = opened.url.absoluteString
+        auditLog.record(
+          toolName: "shortcuts.run_user_configured_shortcut", summary: appIntentStatus,
+          status: .succeeded)
+      } catch {
+        appIntentStatus = error.localizedDescription
+        auditLog.record(
+          toolName: "shortcuts.run_user_configured_shortcut", summary: appIntentStatus,
+          status: .failed)
+      }
+    }
+  }
+
   private func requestAudioSpeechPermissions() {
     Task {
       do {
@@ -2246,9 +2269,12 @@ private struct AppURLSection: View {
 
 private struct AppIntentSection: View {
   let actions: [SupportedAppAction]
+  @Binding var shortcutName: String
+  @Binding var shortcutInputText: String
   let status: String
   let onListTapped: () -> Void
   let onInvokeTapped: () -> Void
+  let onRunShortcutTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -2262,6 +2288,13 @@ private struct AppIntentSection: View {
           .buttonStyle(.bordered)
           .disabled(actions.isEmpty)
       }
+
+      TextField("Shortcut name", text: $shortcutName)
+        .textFieldStyle(.roundedBorder)
+      TextField("Shortcut text input", text: $shortcutInputText)
+        .textFieldStyle(.roundedBorder)
+      Button("Run Shortcut", action: onRunShortcutTapped)
+        .buttonStyle(.bordered)
 
       if !status.isEmpty {
         Text(status)

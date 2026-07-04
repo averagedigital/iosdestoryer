@@ -44,6 +44,29 @@ final class AppURLServiceTests: XCTestCase {
       XCTAssertEqual(error as? AppURLServiceError, .openRejected)
     }
   }
+
+  func testRunsUserConfiguredShortcutThroughShortcutsURLScheme() async throws {
+    let provider = StubURLOpener(result: true)
+    let service = AppURLService(provider: provider)
+
+    let opened = try await service.runShortcut(named: "Daily Review", text: "contract")
+
+    XCTAssertEqual(opened.kind, .shortcut)
+    XCTAssertEqual(
+      provider.openedURLs.map(\.absoluteString),
+      ["shortcuts://run-shortcut?name=Daily%20Review&input=text&text=contract"])
+  }
+
+  func testRejectsBlankShortcutName() async {
+    let service = AppURLService(provider: StubURLOpener(result: true))
+
+    do {
+      _ = try await service.runShortcut(named: " ")
+      XCTFail("Expected blank shortcut name")
+    } catch {
+      XCTAssertEqual(error as? AppURLServiceError, .blankShortcutName)
+    }
+  }
 }
 
 private final class StubURLOpener: URLOpening {
