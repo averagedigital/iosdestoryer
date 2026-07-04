@@ -23,6 +23,8 @@ struct ContentView: View {
   @State private var indexBundleMarkdown = ""
   @State private var ocrText = ""
   @State private var photoPermissionStatus = "Not Checked"
+  @State private var photoAssets: [PhotoAssetSummary] = []
+  @State private var photoClassifications: [PhotoClassificationResult] = []
   @State private var contactPermissionStatus = "Not Checked"
   @State private var calendarPermissionStatus = "Not Checked"
   @State private var reminderPermissionStatus = "Not Checked"
@@ -68,7 +70,12 @@ struct ContentView: View {
               onOCRImageTapped: { isImportingOCRImage = true })
             PhotosSection(
               status: photoPermissionStatus,
-              onCheckTapped: checkPhotoPermission)
+              assets: photoAssets,
+              classifications: photoClassifications,
+              onCheckTapped: checkPhotoPermission,
+              onListTapped: listPhotoAssets,
+              onScreenshotsTapped: findScreenshots,
+              onClassifyTapped: classifyPhotoCandidates)
             ContactsSection(
               status: contactPermissionStatus,
               onCheckTapped: checkContactPermission)
@@ -327,6 +334,30 @@ struct ContentView: View {
     photoPermissionStatus = status.displayName
     auditLog.record(
       toolName: "photos.permission_status", summary: status.rawValue, status: .succeeded)
+  }
+
+  private func listPhotoAssets() {
+    photoAssets = PhotoLibraryService().listAssets(limit: 20)
+    photoClassifications = []
+    auditLog.record(
+      toolName: "photos.list_assets", summary: "\(photoAssets.count) assets", status: .succeeded)
+  }
+
+  private func findScreenshots() {
+    photoAssets = PhotoLibraryService().findScreenshots(limit: 50)
+    photoClassifications = []
+    auditLog.record(
+      toolName: "photos.find_screenshots", summary: "\(photoAssets.count) screenshots",
+      status: .succeeded)
+  }
+
+  private func classifyPhotoCandidates() {
+    photoClassifications = PhotoLibraryService().classifyCandidates(limit: 20)
+    photoAssets = photoClassifications.map(\.asset)
+    auditLog.record(
+      toolName: "photos.classify_candidates",
+      summary: "\(photoClassifications.count) assets",
+      status: .succeeded)
   }
 
   private func checkContactPermission() {
@@ -636,7 +667,12 @@ private struct VisionSection: View {
 
 private struct PhotosSection: View {
   let status: String
+  let assets: [PhotoAssetSummary]
+  let classifications: [PhotoClassificationResult]
   let onCheckTapped: () -> Void
+  let onListTapped: () -> Void
+  let onScreenshotsTapped: () -> Void
+  let onClassifyTapped: () -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -652,6 +688,35 @@ private struct PhotosSection: View {
         Text(status)
           .font(.caption)
           .foregroundStyle(.secondary)
+      }
+
+      HStack {
+        Button("List Assets", action: onListTapped)
+          .buttonStyle(.bordered)
+        Button("Screenshots", action: onScreenshotsTapped)
+          .buttonStyle(.bordered)
+        Button("Classify", action: onClassifyTapped)
+          .buttonStyle(.bordered)
+      }
+
+      ForEach(assets) { asset in
+        VStack(alignment: .leading, spacing: 2) {
+          Text(asset.id)
+            .font(.caption.weight(.semibold))
+            .lineLimit(1)
+          Text("\(asset.pixelWidth)x\(asset.pixelHeight)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      }
+
+      ForEach(classifications, id: \.asset.id) { result in
+        if !result.labels.isEmpty {
+          Text("\(result.asset.id): \(result.labels.map(\.rawValue).joined(separator: ", "))")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+        }
       }
     }
   }

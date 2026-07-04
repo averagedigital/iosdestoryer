@@ -18,6 +18,10 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "index.get_chunks"))
     XCTAssertNotNil(registry.tool(named: "index.export_context_bundle"))
     XCTAssertNotNil(registry.tool(named: "photos.permission_status"))
+    XCTAssertNotNil(registry.tool(named: "photos.list_assets"))
+    XCTAssertNotNil(registry.tool(named: "photos.find_screenshots"))
+    XCTAssertNotNil(registry.tool(named: "photos.find_documents"))
+    XCTAssertNotNil(registry.tool(named: "photos.classify_candidates"))
     XCTAssertNil(registry.tool(named: "apps.control_gui"))
     XCTAssertTrue(registry.tools.allSatisfy(\.usesPublicAppleAPI))
   }

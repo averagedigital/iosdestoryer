@@ -37,6 +37,14 @@ public struct ToolRegistry: Sendable {
         name: "files.delete_with_preview", domain: .files, appleFrameworks: ["Foundation"],
         isDestructive: true),
       AgentTool(name: "photos.permission_status", domain: .photos, appleFrameworks: ["Photos"]),
+      AgentTool(name: "photos.list_assets", domain: .photos, appleFrameworks: ["Photos"]),
+      AgentTool(name: "photos.find_screenshots", domain: .photos, appleFrameworks: ["Photos"]),
+      AgentTool(name: "photos.find_documents", domain: .photos, appleFrameworks: ["Photos"]),
+      AgentTool(
+        name: "photos.find_duplicates_or_candidates", domain: .photos,
+        appleFrameworks: ["Photos"]),
+      AgentTool(
+        name: "photos.classify_candidates", domain: .photos, appleFrameworks: ["Photos"]),
       AgentTool(
         name: "photos.delete_with_preview", domain: .photos, appleFrameworks: ["Photos"],
         isDestructive: true),
