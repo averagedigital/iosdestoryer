@@ -1,9 +1,17 @@
 import Foundation
 
+#if canImport(UniformTypeIdentifiers)
+  import UniformTypeIdentifiers
+#endif
+
 #if canImport(CoreGraphics) && canImport(ImageIO) && canImport(Vision)
   import CoreGraphics
   import ImageIO
   import Vision
+#endif
+
+#if canImport(CoreGraphics) && canImport(ImageIO) && canImport(PDFKit)
+  import PDFKit
 #endif
 
 public struct OCRService {
@@ -22,6 +30,17 @@ public struct OCRService {
     return OCRResult(
       text: observations.map(\.text).joined(separator: "\n"),
       observations: observations)
+  }
+
+  public func recognizeText(inFileAt url: URL) throws -> OCRResult {
+    switch OCRFileType(url: url) {
+    case .image:
+      return try recognizeText(in: Data(contentsOf: url))
+    case .pdf:
+      return try recognizeTextInPDF(at: url)
+    case .unsupported:
+      throw OCRServiceError.unsupportedFileType
+    }
   }
 
   public func detectBarcodes(in imageData: Data) throws -> BarcodeResult {
@@ -81,6 +100,9 @@ public struct BarcodeObservation: Equatable, Sendable {
 public enum OCRServiceError: Error, Equatable {
   case emptyImageData
   case unsupportedImageData
+  case unsupportedFileType
+  case unsupportedPDFData
+  case pdfRenderingUnavailable
   case visionUnavailable
 }
 
@@ -91,10 +113,121 @@ extension OCRServiceError: LocalizedError {
       "Image data is empty."
     case .unsupportedImageData:
       "The selected file is not a supported image."
+    case .unsupportedFileType:
+      "The selected file is not a supported image or PDF."
+    case .unsupportedPDFData:
+      "The selected PDF could not be rendered for OCR."
+    case .pdfRenderingUnavailable:
+      "PDF OCR rendering is not available on this platform."
     case .visionUnavailable:
       "Vision text recognition is not available on this platform."
     }
   }
+}
+
+private enum OCRFileType {
+  case image
+  case pdf
+  case unsupported
+
+  init(url: URL) {
+    #if canImport(UniformTypeIdentifiers)
+      if let type = UTType(filenameExtension: url.pathExtension) {
+        if type.conforms(to: .image) {
+          self = .image
+          return
+        }
+        if type.conforms(to: .pdf) {
+          self = .pdf
+          return
+        }
+      }
+    #endif
+
+    switch url.pathExtension.lowercased() {
+    case "png", "jpg", "jpeg", "heic", "tiff", "gif":
+      self = .image
+    case "pdf":
+      self = .pdf
+    default:
+      self = .unsupported
+    }
+  }
+}
+
+extension OCRService {
+  private func recognizeTextInPDF(at url: URL) throws -> OCRResult {
+    #if canImport(CoreGraphics) && canImport(ImageIO) && canImport(PDFKit)
+      guard let document = PDFDocument(url: url), document.pageCount > 0 else {
+        throw OCRServiceError.unsupportedPDFData
+      }
+
+      var observations: [OCRTextObservation] = []
+      for pageIndex in 0..<document.pageCount {
+        guard let page = document.page(at: pageIndex) else { continue }
+        let pageData = try renderPageImageData(page)
+        observations.append(contentsOf: try recognizer.recognizeText(in: pageData))
+      }
+
+      return OCRResult(
+        text: observations.map(\.text).joined(separator: "\n"),
+        observations: observations)
+    #else
+      throw OCRServiceError.pdfRenderingUnavailable
+    #endif
+  }
+
+  #if canImport(CoreGraphics) && canImport(ImageIO) && canImport(PDFKit)
+    private func renderPageImageData(_ page: PDFPage) throws -> Data {
+      let bounds = page.bounds(for: .mediaBox)
+      let scale: CGFloat = 2
+      let width = max(Int(bounds.width * scale), 1)
+      let height = max(Int(bounds.height * scale), 1)
+      let colorSpace = CGColorSpaceCreateDeviceRGB()
+
+      guard
+        let context = CGContext(
+          data: nil,
+          width: width,
+          height: height,
+          bitsPerComponent: 8,
+          bytesPerRow: 0,
+          space: colorSpace,
+          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+      else {
+        throw OCRServiceError.unsupportedPDFData
+      }
+
+      context.setFillColor(CGColor(gray: 1, alpha: 1))
+      context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+      context.saveGState()
+      context.scaleBy(x: scale, y: scale)
+      context.translateBy(x: -bounds.minX, y: bounds.height - bounds.minY)
+      context.scaleBy(x: 1, y: -1)
+      page.draw(with: .mediaBox, to: context)
+      context.restoreGState()
+
+      guard let image = context.makeImage() else {
+        throw OCRServiceError.unsupportedPDFData
+      }
+
+      let data = NSMutableData()
+      #if canImport(UniformTypeIdentifiers)
+        let pngIdentifier = UTType.png.identifier as CFString
+      #else
+        let pngIdentifier = "public.png" as CFString
+      #endif
+
+      guard let destination = CGImageDestinationCreateWithData(data, pngIdentifier, 1, nil) else {
+        throw OCRServiceError.unsupportedPDFData
+      }
+      CGImageDestinationAddImage(destination, image, nil)
+      guard CGImageDestinationFinalize(destination) else {
+        throw OCRServiceError.unsupportedPDFData
+      }
+      return data as Data
+    }
+  #endif
 }
 
 #if canImport(CoreGraphics) && canImport(ImageIO) && canImport(Vision)

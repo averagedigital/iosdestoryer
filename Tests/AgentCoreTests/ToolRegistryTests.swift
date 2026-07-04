@@ -51,6 +51,7 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertNotNil(registry.tool(named: "app.open_deeplink"))
     XCTAssertNotNil(registry.tool(named: "camera.take_photo"))
     XCTAssertNotNil(registry.tool(named: "camera.scan_document"))
+    XCTAssertNotNil(registry.tool(named: "vision.ocr_pdf_or_file_image"))
     XCTAssertNotNil(registry.tool(named: "vision.detect_barcodes_if_easy"))
     XCTAssertNotNil(registry.tool(named: "app_intents.list_supported_actions"))
     XCTAssertNotNil(registry.tool(named: "app_intents.invoke_own_action"))

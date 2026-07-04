@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import XCTest
 
@@ -35,6 +36,68 @@ final class OCRServiceTests: XCTestCase {
       XCTAssertEqual(error as? OCRServiceError, .emptyImageData)
     }
   }
+
+  func testRecognizesTextFromImageFile() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(
+      path: UUID().uuidString, directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let url = directory.appending(path: "scan.png")
+    try Data([7, 8, 9]).write(to: url)
+    let service = OCRService(
+      recognizer: StubOCRRecognizer(observations: [
+        OCRTextObservation(text: "Act 42", confidence: 0.95)
+      ]))
+
+    let result = try service.recognizeText(inFileAt: url)
+
+    XCTAssertEqual(result.text, "Act 42")
+  }
+
+  func testRecognizesTextFromPDFFile() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(
+      path: UUID().uuidString, directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let url = directory.appending(path: "scan.pdf")
+    try writeBlankPDF(to: url)
+    let service = OCRService(
+      recognizer: StubOCRRecognizer(observations: [
+        OCRTextObservation(text: "PDF Page", confidence: 0.88)
+      ]))
+
+    let result = try service.recognizeText(inFileAt: url)
+
+    XCTAssertEqual(result.text, "PDF Page")
+  }
+
+  func testRejectsUnsupportedOCRFileType() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(
+      path: UUID().uuidString, directoryHint: .isDirectory)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let url = directory.appending(path: "notes.txt")
+    try Data([1]).write(to: url)
+    let service = OCRService(recognizer: StubOCRRecognizer(observations: []))
+
+    XCTAssertThrowsError(try service.recognizeText(inFileAt: url)) { error in
+      XCTAssertEqual(error as? OCRServiceError, .unsupportedFileType)
+    }
+  }
+}
+
+private func writeBlankPDF(to url: URL) throws {
+  guard let consumer = CGDataConsumer(url: url as CFURL) else {
+    XCTFail("Could not create PDF data consumer.")
+    return
+  }
+  var mediaBox = CGRect(x: 0, y: 0, width: 100, height: 100)
+  guard let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else {
+    XCTFail("Could not create PDF context.")
+    return
+  }
+  context.beginPDFPage(nil)
+  context.setFillColor(CGColor(gray: 1, alpha: 1))
+  context.fill(mediaBox)
+  context.endPDFPage()
+  context.closePDF()
 }
 
 private struct StubOCRRecognizer: OCRRecognizing {

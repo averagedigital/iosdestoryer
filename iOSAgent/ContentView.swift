@@ -248,7 +248,7 @@ struct ContentView: View {
       )
       .fileImporter(
         isPresented: $isImportingOCRImage,
-        allowedContentTypes: [.image],
+        allowedContentTypes: [.image, .pdf],
         allowsMultipleSelection: false,
         onCompletion: handleOCRImageImport
       )
@@ -517,22 +517,23 @@ struct ContentView: View {
       }
 
       do {
-        let imageData = try Data(contentsOf: url)
-        let result = try OCRService().recognizeText(in: imageData)
+        let result = try OCRService().recognizeText(inFileAt: url)
         ocrText = result.text
         auditLog.record(
-          toolName: "vision.ocr_image",
+          toolName: "vision.ocr_pdf_or_file_image",
           summary: "\(result.observations.count) text observations",
           status: .succeeded)
       } catch {
         ocrText = ""
         auditLog.record(
-          toolName: "vision.ocr_image", summary: error.localizedDescription, status: .failed)
+          toolName: "vision.ocr_pdf_or_file_image", summary: error.localizedDescription,
+          status: .failed)
       }
     case .failure(let error):
       ocrText = ""
       auditLog.record(
-        toolName: "vision.ocr_image", summary: error.localizedDescription, status: .failed)
+        toolName: "vision.ocr_pdf_or_file_image", summary: error.localizedDescription,
+        status: .failed)
     }
   }
 

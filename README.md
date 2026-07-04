@@ -15,7 +15,8 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - `files.search` lexical search over imported UTF-8 files, with skipped non-text files surfaced.
 - `files.context_bundle` local Markdown bundle builder for matched imported files.
 - `index.rebuild`, `index.search`, `index.get_chunks`, and `index.export_context_bundle` build a local chunk index from app-managed UTF-8 imports.
-- `vision.ocr_image` OCR over user-picked image files through Apple's Vision framework.
+- `vision.ocr_image` OCR over image data through Apple's Vision framework.
+- `vision.ocr_pdf_or_file_image` OCR over user-picked image/PDF files; PDFs render locally through PDFKit before Vision OCR.
 - `camera.take_photo`, `camera.scan_document`, and `vision.detect_barcodes_if_easy` use foreground UIKit/VisionKit/Vision flows only.
 - `photos.permission_status` inspectable PhotoKit authorization status without reading assets.
 - `photos.list_assets`, `photos.find_screenshots`, `photos.find_documents`, `photos.classify_candidates`, `photos.create_album`, `photos.add_to_album`, `photos.favorite`, `photos.remove_from_album_with_preview`, `photos.hide_with_preview`, and `photos.delete_with_preview` use PhotoKit after Photos authorization.
@@ -39,7 +40,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - Notifications: UserNotifications schedules and cancels local notification requests after user permission.
 - Share: Share Extension ingestion is the supported path for content from other apps; the app reads only its own inbox, not third-party app containers.
 - URLs/deeplinks: `UIApplication.open` can open explicit URLs; the app does not depend on private schemes or claim third-party app control.
-- OCR: Vision text recognition is available through `VNRecognizeTextRequest` / `RecognizeTextRequest`.
+- OCR: Vision text recognition is available through `VNRecognizeTextRequest` / `RecognizeTextRequest`; selected PDFs are rendered locally with PDFKit before OCR.
 - Camera/scanning: `UIImagePickerController` and `VNDocumentCameraViewController` present foreground camera UI; if unsupported, the app reports that explicitly.
 - Barcodes: Vision barcode detection returns structured payload/symbology/confidence results for selected images.
 - App Intents: App Intents expose this app's own actions to Shortcuts, Siri, Spotlight, widgets, and system experiences. They are not arbitrary third-party app control.
@@ -63,6 +64,9 @@ Sources checked:
 - https://developer.apple.com/app-extensions/
 - https://developer.apple.com/documentation/uikit/uiapplication/open(_:options:completionhandler:)
 - https://developer.apple.com/documentation/vision/recognizing-text-in-images
+- https://developer.apple.com/documentation/pdfkit/pdfpage
+- https://developer.apple.com/documentation/pdfkit/pdfpage/draw%28with%3A%29
+- https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct
 - https://developer.apple.com/documentation/uikit/uiimagepickercontroller/sourcetype-swift.enum/camera
 - https://developer.apple.com/documentation/visionkit/vndocumentcameraviewcontroller
 - https://developer.apple.com/documentation/vision/detectbarcodesrequest

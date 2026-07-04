@@ -110,6 +110,9 @@ public struct ToolRegistry: Sendable {
       AgentTool(name: "app.open_deeplink", domain: .app, appleFrameworks: ["UIKit"]),
       AgentTool(name: "vision.ocr_image", domain: .vision, appleFrameworks: ["Vision"]),
       AgentTool(
+        name: "vision.ocr_pdf_or_file_image", domain: .vision,
+        appleFrameworks: ["Vision", "PDFKit", "UniformTypeIdentifiers"]),
+      AgentTool(
         name: "vision.detect_barcodes_if_easy", domain: .vision, appleFrameworks: ["Vision"]),
       AgentTool(name: "camera.take_photo", domain: .vision, appleFrameworks: ["UIKit"]),
       AgentTool(
