@@ -2085,6 +2085,22 @@ private struct ToolCallCard: View {
         Text(item.body)
           .font(.caption)
       }
+      VStack(alignment: .leading, spacing: 4) {
+        Text("Data Source")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+        Text(dataSource)
+          .font(.caption)
+      }
+      if showsPreview {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Preview")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+          Text(previewText)
+            .font(.caption)
+        }
+      }
       if !item.result.isEmpty {
         VStack(alignment: .leading, spacing: 4) {
           Text("Result")
@@ -2103,6 +2119,45 @@ private struct ToolCallCard: View {
         .stroke(Color.accentColor.opacity(0.16), lineWidth: 1)
     )
     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+  }
+
+  private var dataSource: String {
+    if item.title.hasPrefix("files.") || item.title.hasPrefix("index.") {
+      return "Local Files"
+    }
+    if item.title.hasPrefix("photos.") {
+      return "Photo Library"
+    }
+    if item.title.hasPrefix("contacts.") {
+      return "Contacts"
+    }
+    if item.title.hasPrefix("calendar.") || item.title.hasPrefix("reminders.") {
+      return "Calendar and Reminders"
+    }
+    if item.title.hasPrefix("camera.") || item.title.hasPrefix("vision.") {
+      return "Camera and Vision"
+    }
+    if item.title.hasPrefix("audio.") || item.title.hasPrefix("speech.") {
+      return "Audio and Speech"
+    }
+    if item.title.hasPrefix("notify.") {
+      return "Local Notifications"
+    }
+    if item.title.hasPrefix("shortcuts.") || item.title.hasPrefix("app_intents.") {
+      return "Shortcuts and App Intents"
+    }
+    if item.title.hasPrefix("local_model.") {
+      return "On-device Model"
+    }
+    return "Local Tool Registry"
+  }
+
+  private var showsPreview: Bool {
+    item.status == "Confirm" || item.title.contains("_with_preview")
+  }
+
+  private var previewText: String {
+    item.status == "Confirm" ? "Waiting for confirmation." : "Preview required before mutation."
   }
 
   private var statusColor: Color {
