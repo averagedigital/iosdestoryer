@@ -74,4 +74,4 @@ Sources checked:
 - `Sources/AgentCore/`: testable agent contracts and local tool metadata.
 - `Tests/AgentCoreTests/`: narrow behavior tests.
 
-Next feature should be UI/privacy polish around imported sources and shared items: clearer empty/error states and local-only copy.
+Next feature should be the optional local model layer: availability-gated summarize/classify/embed tools without sending private data off-device.

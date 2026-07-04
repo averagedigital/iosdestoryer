@@ -1193,6 +1193,10 @@ private struct ShareInboxSection: View {
         .font(.caption)
         .foregroundStyle(.secondary)
 
+      Text("Shared items stay in the app group until you import them into Files.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+
       Button(action: onRefreshTapped) {
         Label("Refresh Shared Items", systemImage: "square.and.arrow.down")
       }
@@ -1200,6 +1204,12 @@ private struct ShareInboxSection: View {
 
       if !status.isEmpty {
         Text(status)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      if items.isEmpty {
+        Text("No shared items yet.")
           .font(.caption)
           .foregroundStyle(.secondary)
       }
@@ -1255,6 +1265,10 @@ private struct FileImportSection: View {
 
       Text("Import a document from the Files app to grant access only to the item you pick.")
         .font(.subheadline)
+        .foregroundStyle(.secondary)
+
+      Text("Files are copied into this app and stay local.")
+        .font(.caption)
         .foregroundStyle(.secondary)
 
       HStack {
@@ -1385,6 +1399,12 @@ private struct IndexSection: View {
         Button("Rebuild Index", action: onRebuildTapped)
           .buttonStyle(.bordered)
         Text("\(index.chunks.count) chunks")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      if index.chunks.isEmpty {
+        Text("No indexed text yet. Import files, then rebuild the index.")
           .font(.caption)
           .foregroundStyle(.secondary)
       }
