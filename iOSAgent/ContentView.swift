@@ -108,6 +108,7 @@ struct ContentView: View {
               onImportTapped: { isImportingFile = true },
               onFolderImportTapped: { isImportingFolder = true },
               onSourcesTapped: listAllowedSources,
+              onIndexFolderTapped: indexFolder,
               onWriteTapped: writeTextFile,
               onSearchTapped: searchImportedFiles,
               onReadTapped: readFile,
@@ -560,6 +561,25 @@ struct ContentView: View {
     }
   }
 
+  private func indexFolder() {
+    do {
+      localIndex = try LocalIndexService(rootDirectory: importsDirectory).rebuild()
+      indexResults = []
+      indexBundleMarkdown = ""
+      fileOperationStatus =
+        "\(localIndex.chunks.count) chunks indexed, \(localIndex.skippedFiles.count) skipped"
+      auditLog.record(
+        toolName: "files.index_folder", summary: fileOperationStatus, status: .succeeded)
+    } catch {
+      localIndex = LocalIndex(chunks: [], skippedFiles: [])
+      indexResults = []
+      indexBundleMarkdown = ""
+      fileOperationStatus = error.localizedDescription
+      auditLog.record(
+        toolName: "files.index_folder", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
   private func searchIndex() {
     do {
       indexResults = try localIndex.search(query: indexQuery)
@@ -606,6 +626,8 @@ struct ContentView: View {
   private func runAgentRoute(_ route: AgentCommandRoute, message: String) -> ChatToolResult {
     let previousAuditCount = auditLog.entries.count
     switch route.toolName {
+    case "files.index_folder":
+      indexFolder()
     case "index.search":
       indexQuery = message
       searchIndex()
@@ -1860,6 +1882,7 @@ private struct FileImportSection: View {
   let onImportTapped: () -> Void
   let onFolderImportTapped: () -> Void
   let onSourcesTapped: () -> Void
+  let onIndexFolderTapped: () -> Void
   let onWriteTapped: () -> Void
   let onSearchTapped: () -> Void
   let onReadTapped: (FileSearchResult) -> Void
@@ -1897,6 +1920,11 @@ private struct FileImportSection: View {
 
       Button(action: onSourcesTapped) {
         Label("Allowed Sources", systemImage: "folder")
+      }
+      .buttonStyle(.bordered)
+
+      Button(action: onIndexFolderTapped) {
+        Label("Index Folder", systemImage: "folder.badge.gearshape")
       }
       .buttonStyle(.bordered)
 

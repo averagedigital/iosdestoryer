@@ -49,6 +49,10 @@ final class AgentCommandRouterTests: XCTestCase {
       "index.export_context_bundle")
   }
 
+  func testRoutesFolderIndexRequest() {
+    XCTAssertEqual(router.route("проиндексируй папку")?.toolName, "files.index_folder")
+  }
+
   func testReturnsNilForUnsupportedMessage() {
     XCTAssertNil(router.route("привет"))
   }

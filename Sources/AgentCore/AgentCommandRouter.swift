@@ -10,6 +10,9 @@ public struct AgentCommandRouter: Sendable {
     if containsAny(text, ["context bundle", "контекст", "собери context"]) {
       return AgentCommandRoute(toolName: "index.export_context_bundle")
     }
+    if containsAny(text, ["index folder", "проиндексируй папку", "индексируй папку"]) {
+      return AgentCommandRoute(toolName: "files.index_folder")
+    }
     if containsAny(text, ["shortcut", "shortcuts", "команду", "быструю команду"]) {
       return AgentCommandRoute(toolName: "shortcuts.run_user_configured_shortcut")
     }
