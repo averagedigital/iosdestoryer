@@ -9,7 +9,7 @@ Native iPhone agent app scaffold built around official Apple permission domains.
 - The app uses separate SwiftUI tabs for Chat, Sources/Permissions, Index, Audit, and Settings/Privacy.
 - Chat keeps a session transcript and shows app-local tool call cards for routed requests.
 - Chat input routes obvious local requests to existing app-local tools and records the selected tool call in the audit log.
-- `AgentCore` Swift package: tool registry and audit log.
+- `AgentCore` Swift package: tool registry and persisted local audit log.
 - `files.pick_file` core import service: copies a user-picked file into the app container and keeps same-name imports instead of overwriting.
 - `files.pick_folder` copies a user-picked folder into the app container with nested files preserved for local search/indexing.
 - `files.list_allowed_sources` shows the app-managed Imports directory only.
@@ -112,7 +112,7 @@ Next feature should fill only the remaining verified validation gaps.
 | Chat-like agent UI | Implemented | Chat tab has transcript, input, routed tool cards, and audit-backed statuses. |
 | Separate app screens | Implemented | Tabs: Chat, Sources, Index, Audit, Settings. |
 | Tool registry | Implemented | `ToolRegistry.defaultRegistry()` lists app-local tools by permission domain. |
-| Audit log | Implemented | Tool calls record ordered status entries and are shown in Audit. |
+| Audit log | Implemented | Tool calls record ordered status entries, persist locally, and are shown in Audit. |
 | Files and local index | Implemented | Imports, app-managed file ops, text extraction, lexical index/search, context bundle. |
 | OCR, camera, barcode | Implemented with simulator limits | Image/PDF OCR, foreground camera/scanner UI, barcode detection; hardware camera needs device validation. |
 | Photos | Implemented with manual validation gap | Permission status/request, listing, candidates, albums, favorite, previewed remove/hide/delete. |

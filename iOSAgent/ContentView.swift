@@ -13,6 +13,7 @@ struct ContentView: View {
     )
   ]
   @State private var auditLog = AuditLog()
+  @State private var auditPersistenceStatus = ""
   @State private var isImportingFile = false
   @State private var isImportingFolder = false
   @State private var isImportingOCRImage = false
@@ -235,7 +236,7 @@ struct ContentView: View {
         .tabItem { Label("Index", systemImage: "doc.text.magnifyingglass") }
 
         ScrollView {
-          AuditSection(entries: auditLog.entries)
+          AuditSection(entries: auditLog.entries, persistenceStatus: auditPersistenceStatus)
             .padding()
         }
         .tabItem { Label("Audit", systemImage: "list.bullet.clipboard") }
@@ -272,6 +273,12 @@ struct ContentView: View {
         .tabItem { Label("Settings", systemImage: "lock.shield") }
       }
       .navigationTitle("iOS Agent")
+      .task {
+        loadAuditLog()
+      }
+      .onChange(of: auditLog.entries) { _, _ in
+        saveAuditLog()
+      }
       .fileImporter(
         isPresented: $isImportingFile,
         allowedContentTypes: [.data],
@@ -326,6 +333,24 @@ struct ContentView: View {
       importedFileName = nil
       auditLog.record(
         toolName: "files.pick_file", summary: error.localizedDescription, status: .failed)
+    }
+  }
+
+  private func loadAuditLog() {
+    do {
+      auditLog = try AuditLogStore.defaultStore().load()
+      auditPersistenceStatus = auditLog.entries.isEmpty ? "" : "Loaded \(auditLog.entries.count)"
+    } catch {
+      auditPersistenceStatus = "Audit load failed"
+    }
+  }
+
+  private func saveAuditLog() {
+    do {
+      try AuditLogStore.defaultStore().save(auditLog)
+      auditPersistenceStatus = "Saved \(auditLog.entries.count)"
+    } catch {
+      auditPersistenceStatus = "Audit save failed"
     }
   }
 
@@ -2817,11 +2842,18 @@ private struct LocalModelSection: View {
 
 private struct AuditSection: View {
   let entries: [AuditEntry]
+  let persistenceStatus: String
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text("Audit")
         .font(.headline)
+
+      if !persistenceStatus.isEmpty {
+        Text(persistenceStatus)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
 
       if entries.isEmpty {
         Text("No tool calls yet.")
