@@ -2403,9 +2403,14 @@ private struct ToolSection: View {
   let registry: ToolRegistry
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Tools")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Tools")
+          .font(.headline)
+        Text("Permission-scoped local tool registry.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
 
       HStack(spacing: 8) {
         AgentStatusPill(
@@ -2418,26 +2423,28 @@ private struct ToolSection: View {
           .monospacedDigit()
       }
 
-      ForEach(registry.tools) { tool in
-        HStack {
-          VStack(alignment: .leading, spacing: 2) {
-            Text(tool.name)
-              .font(.subheadline.monospaced())
-            Text(tool.appleFrameworks.joined(separator: ", "))
-              .font(.caption)
+      ForEach(groupedTools, id: \.domain) { group in
+        VStack(alignment: .leading, spacing: 8) {
+          HStack(alignment: .firstTextBaseline) {
+            Text(group.domain.rawValue)
+              .font(.caption.weight(.bold))
+            Spacer()
+            Text("\(group.tools.count)")
+              .font(.caption2.monospaced().weight(.semibold))
               .foregroundStyle(.secondary)
           }
-          Spacer()
-          if tool.requiresPreview {
-            Text("Preview")
-              .font(.caption.weight(.semibold))
-              .padding(.horizontal, 8)
-              .padding(.vertical, 4)
-              .background(Color.orange.opacity(0.18))
-              .clipShape(Capsule())
+
+          ForEach(group.tools) { tool in
+            ToolRegistryRow(tool: tool)
           }
         }
-        .padding(.vertical, 6)
+        .padding(10)
+        .background(AgentTheme.field)
+        .overlay(
+          RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .stroke(AgentTheme.softRing, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
       }
     }
   }
@@ -2448,6 +2455,53 @@ private struct ToolSection: View {
 
   private var frameworkCount: Int {
     Set(registry.tools.flatMap(\.appleFrameworks)).count
+  }
+
+  private var groupedTools: [(domain: ToolDomain, tools: [AgentTool])] {
+    ToolDomain.allCases.compactMap { domain in
+      let tools = registry.tools.filter { $0.domain == domain }
+      return tools.isEmpty ? nil : (domain, tools)
+    }
+  }
+}
+
+private struct ToolRegistryRow: View {
+  let tool: AgentTool
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 9) {
+      Image(systemName: tool.requiresPreview ? "checkmark.shield" : "terminal")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(tool.requiresPreview ? .orange : Color.accentColor)
+        .frame(width: 26, height: 26)
+        .background((tool.requiresPreview ? Color.orange : Color.accentColor).opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(tool.name)
+          .font(.caption.monospaced().weight(.semibold))
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+
+        Text(tool.appleFrameworks.joined(separator: ", "))
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
+
+      Spacer(minLength: 8)
+
+      Text(tool.requiresPreview ? "Preview" : "Public API")
+        .font(.caption2.weight(.bold))
+        .foregroundStyle(tool.requiresPreview ? .orange : .secondary)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background((tool.requiresPreview ? Color.orange : Color.secondary).opacity(0.12))
+        .clipShape(Capsule())
+    }
+    .padding(8)
+    .background(AgentTheme.panel)
+    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
   }
 }
 
