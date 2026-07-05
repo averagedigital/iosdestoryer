@@ -3782,43 +3782,90 @@ private struct AudioSpeechSection: View {
   let onTranscribeTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Audio & Speech")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Audio & Speech")
+            .font(.headline)
+          Text("Visible microphone recording and on-device speech transcription.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      HStack {
-        Button("Status", action: onStatusTapped)
-          .buttonStyle(.bordered)
-        Button("Request", action: onPermissionTapped)
-          .buttonStyle(.bordered)
-        Text(permissionStatus)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: permissionStatus.isEmpty ? "Unknown" : "Checked",
+          systemImage: permissionStatus.isEmpty ? "waveform" : "checkmark.circle")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Duration", value: "\(Int(durationSeconds))s", systemImage: "timer",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Recording", value: recording == nil ? "None" : "Ready",
+          systemImage: "waveform", tint: .accentColor)
+        IndexMetricTile(
+          title: "Transcript", value: transcript.isEmpty ? "0" : "\(transcriptLineCount)",
+          systemImage: "text.quote", tint: .accentColor)
+      }
+
+      Text("Recording is foreground-only and requires microphone and Speech permission.")
+        .agentOutputBlock()
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onStatusTapped) {
+          Label("Status", systemImage: "lock.shield")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onPermissionTapped) {
+          Label("Request", systemImage: "hand.raised")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onRecordTapped) {
+          Label("Record", systemImage: "record.circle")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onTranscribeTapped) {
+          Label("Transcribe", systemImage: "text.bubble")
+        }
+        .buttonStyle(.bordered)
+        .disabled(recording == nil)
       }
 
       Stepper("Record \(Int(durationSeconds))s", value: $durationSeconds, in: 3...60, step: 1)
+        .font(.caption.weight(.semibold))
+        .padding(10)
+        .background(AgentTheme.field)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-      HStack {
-        Button("Record", action: onRecordTapped)
-          .buttonStyle(.bordered)
-        Button("Transcribe", action: onTranscribeTapped)
-          .buttonStyle(.bordered)
-          .disabled(recording == nil)
+      if !permissionStatus.isEmpty {
+        Label(permissionStatus, systemImage: "waveform")
+          .foregroundStyle(.secondary)
+          .agentOutputBlock(monospaced: true)
       }
 
       if let recording {
-        Text(recording.fileURL.lastPathComponent)
-          .font(.caption)
+        Label(recording.fileURL.lastPathComponent, systemImage: "waveform.path")
           .foregroundStyle(.secondary)
           .lineLimit(1)
+          .agentOutputBlock()
       }
 
       if !transcript.isEmpty {
-        Text(transcript)
-          .font(.caption)
-          .lineLimit(3)
+        VisionResultBlock(
+          title: "Transcript", systemImage: "text.quote", text: transcript, monospaced: false,
+          lineLimit: 3)
       }
     }
+  }
+
+  private var transcriptLineCount: Int {
+    transcript.split(whereSeparator: \.isNewline).count
   }
 }
 
