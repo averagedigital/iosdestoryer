@@ -2512,54 +2512,127 @@ private struct ShareInboxSection: View {
   let onImportTapped: (SharedInboxItem) -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Share Inbox")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Share Inbox")
+            .font(.headline)
+          Text("Official intake from other apps through the app group.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      Text("Local App Group inbox")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        Spacer(minLength: 8)
 
-      Text("Shared items stay in the app group until you import them into Files.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        AgentStatusPill(
+          text: items.isEmpty ? "Empty" : "\(items.count) queued",
+          systemImage: items.isEmpty ? "tray" : "tray.full"
+        )
+        .monospacedDigit()
+      }
+
+      HStack(spacing: 8) {
+        AgentStatusPill(text: "Local", systemImage: "iphone")
+        AgentStatusPill(text: "User shared", systemImage: "square.and.arrow.down")
+        AgentStatusPill(text: "Files import", systemImage: "folder")
+      }
+
+      Text("Shared items stay local until you import them into Files.")
+        .agentOutputBlock()
 
       Button(action: onRefreshTapped) {
-        Label("Refresh Shared Items", systemImage: "square.and.arrow.down")
+        Label("Refresh", systemImage: "arrow.clockwise")
       }
       .buttonStyle(.bordered)
 
+      if items.isEmpty {
+        Label("No shared items yet.", systemImage: "tray")
+          .foregroundStyle(.secondary)
+          .agentOutputBlock()
+      } else {
+        VStack(spacing: 8) {
+          ForEach(items) { item in
+            ShareInboxItemRow(item: item, onImportTapped: onImportTapped)
+          }
+        }
+      }
+
       if !status.isEmpty {
         Text(status)
-          .font(.caption)
+          .foregroundStyle(.secondary)
+          .agentOutputBlock(monospaced: true)
+      }
+    }
+  }
+}
+
+private struct ShareInboxItemRow: View {
+  let item: SharedInboxItem
+  let onImportTapped: (SharedInboxItem) -> Void
+
+  var body: some View {
+    HStack(alignment: .center, spacing: 10) {
+      Image(systemName: systemImage)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(tint)
+        .frame(width: 30, height: 30)
+        .background(tint.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(item.url.lastPathComponent)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+
+        Text(item.kind.rawValue.capitalized)
+          .font(.caption2.monospaced())
           .foregroundStyle(.secondary)
       }
 
-      if items.isEmpty {
-        Text("No shared items yet.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+      Spacer(minLength: 8)
+
+      Button(action: { onImportTapped(item) }) {
+        Label("Import", systemImage: "tray.and.arrow.down")
+          .labelStyle(.iconOnly)
+          .frame(width: 28, height: 28)
       }
+      .buttonStyle(.bordered)
+      .accessibilityLabel("Import \(item.url.lastPathComponent) to Files")
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
 
-      ForEach(items) { item in
-        HStack {
-          VStack(alignment: .leading, spacing: 2) {
-            Text(item.kind.rawValue)
-              .font(.caption.monospaced())
-            Text(item.url.lastPathComponent)
-              .lineLimit(1)
-          }
+  private var systemImage: String {
+    switch item.kind {
+    case .text:
+      "doc.text"
+    case .url:
+      "link"
+    case .image:
+      "photo"
+    case .file:
+      "doc"
+    }
+  }
 
-          Spacer()
-
-          Button(action: { onImportTapped(item) }) {
-            Label("Import to Files", systemImage: "tray.and.arrow.down")
-          }
-          .buttonStyle(.bordered)
-          .font(.caption)
-        }
-        .font(.caption)
-      }
+  private var tint: Color {
+    switch item.kind {
+    case .text:
+      .blue
+    case .url:
+      .purple
+    case .image:
+      .green
+    case .file:
+      .orange
     }
   }
 }
