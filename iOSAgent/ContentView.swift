@@ -86,6 +86,34 @@ struct ContentView: View {
   @State private var localModelStatus = ""
   @State private var localModelClassification: LocalModelClassification?
 
+  private var activePermissionCount: Int {
+    permissionStatusValues.filter { value in
+      let normalized = value.lowercased()
+      return !normalized.isEmpty && !normalized.contains("not checked")
+    }.count
+  }
+
+  private var pendingPreviewCount: Int {
+    [
+      pendingDeletePreview != nil,
+      pendingPhotoPreview != nil,
+      pendingContactPreview != nil || pendingContactMergePreview != nil,
+      pendingEventKitPreview != nil,
+    ].filter { $0 }.count
+  }
+
+  private var permissionStatusValues: [String] {
+    [
+      photoPermissionStatus,
+      contactPermissionStatus,
+      calendarPermissionStatus,
+      reminderPermissionStatus,
+      notificationPermissionStatus,
+      cameraStatus,
+      audioPermissionStatus,
+    ]
+  }
+
   var body: some View {
     NavigationStack {
       TabView {
@@ -350,6 +378,19 @@ struct ContentView: View {
         .tabItem { Label("Settings", systemImage: "lock.shield") }
       }
       .navigationTitle("iOS Agent")
+      .safeAreaInset(edge: .top) {
+        AgentRuntimeStrip(
+          activePermissions: activePermissionCount,
+          sourceCount: allowedSources.count,
+          chunkCount: localIndex.chunks.count,
+          auditCount: auditLog.entries.count,
+          pendingPreviewCount: pendingPreviewCount
+        )
+        .padding(.horizontal)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
+        .background(.ultraThinMaterial)
+      }
       .task {
         loadAuditLog()
       }
@@ -1781,6 +1822,90 @@ private struct AgentStatusPill: View {
       .padding(.vertical, 6)
       .background(AgentTheme.field)
       .clipShape(Capsule())
+  }
+}
+
+private struct AgentRuntimeStrip: View {
+  let activePermissions: Int
+  let sourceCount: Int
+  let chunkCount: Int
+  let auditCount: Int
+  let pendingPreviewCount: Int
+
+  var body: some View {
+    ScrollView(.horizontal, showsIndicators: false) {
+      HStack(spacing: 8) {
+        RuntimeMetricPill(
+          title: "Permissions",
+          value: "\(activePermissions)/7",
+          systemImage: "lock.shield",
+          tint: activePermissions == 0 ? .secondary : .green
+        )
+        RuntimeMetricPill(
+          title: "Sources",
+          value: "\(sourceCount)",
+          systemImage: "folder",
+          tint: .blue
+        )
+        RuntimeMetricPill(
+          title: "Chunks",
+          value: "\(chunkCount)",
+          systemImage: "doc.text.magnifyingglass",
+          tint: .purple
+        )
+        RuntimeMetricPill(
+          title: "Audit",
+          value: "\(auditCount)",
+          systemImage: "list.bullet.clipboard",
+          tint: .teal
+        )
+        RuntimeMetricPill(
+          title: "Previews",
+          value: "\(pendingPreviewCount)",
+          systemImage: "checkmark.shield",
+          tint: pendingPreviewCount == 0 ? .secondary : .orange
+        )
+      }
+      .padding(8)
+    }
+    .background(AgentTheme.panel)
+    .overlay(
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .stroke(AgentTheme.ring, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+  }
+}
+
+private struct RuntimeMetricPill: View {
+  let title: String
+  let value: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    HStack(spacing: 7) {
+      Image(systemName: systemImage)
+        .font(.caption2.weight(.bold))
+        .foregroundStyle(tint)
+        .frame(width: 22, height: 22)
+        .background(tint.opacity(0.12))
+        .clipShape(Circle())
+
+      VStack(alignment: .leading, spacing: 0) {
+        Text(value)
+          .font(.caption.weight(.bold))
+          .monospacedDigit()
+        Text(title)
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+      }
+    }
+    .padding(.horizontal, 9)
+    .padding(.vertical, 7)
+    .background(AgentTheme.field)
+    .overlay(Capsule().stroke(tint.opacity(0.14), lineWidth: 1))
+    .clipShape(Capsule())
   }
 }
 
