@@ -2027,6 +2027,39 @@ extension AuditStatus {
       "Confirm"
     }
   }
+
+  var displayName: String {
+    switch self {
+    case .succeeded:
+      "Succeeded"
+    case .failed:
+      "Failed"
+    case .needsConfirmation:
+      "Needs Confirm"
+    }
+  }
+
+  var systemImage: String {
+    switch self {
+    case .succeeded:
+      "checkmark.circle"
+    case .failed:
+      "xmark.octagon"
+    case .needsConfirmation:
+      "checkmark.shield"
+    }
+  }
+
+  var tint: Color {
+    switch self {
+    case .succeeded:
+      .green
+    case .failed:
+      .red
+    case .needsConfirmation:
+      .orange
+    }
+  }
 }
 
 private struct ChatScreen: View {
@@ -3468,9 +3501,20 @@ private struct AuditSection: View {
   let persistenceStatus: String
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Audit")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Audit")
+            .font(.headline)
+          Text("Local tool calls and preview decisions.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        AgentStatusPill(text: entries.isEmpty ? "Idle" : "Active", systemImage: "clock")
+      }
 
       HStack(spacing: 8) {
         AgentStatusPill(text: "\(entries.count) entries", systemImage: "list.bullet.clipboard")
@@ -3482,30 +3526,20 @@ private struct AuditSection: View {
       }
 
       if !persistenceStatus.isEmpty {
-        Text(persistenceStatus)
+        Label(persistenceStatus, systemImage: "externaldrive.badge.exclamationmark")
           .font(.caption)
-          .foregroundStyle(.secondary)
+          .foregroundStyle(.orange)
+          .agentOutputBlock()
       }
 
       if entries.isEmpty {
-        Text("No tool calls yet.")
+        Label("No tool calls yet.", systemImage: "list.bullet.clipboard")
+          .font(.caption)
           .foregroundStyle(.secondary)
+          .agentOutputBlock()
       } else {
         ForEach(entries) { entry in
-          VStack(alignment: .leading, spacing: 2) {
-            HStack {
-              Text(entry.toolName)
-                .font(.caption.monospaced().weight(.semibold))
-              Spacer()
-              Text(entry.status.rawValue)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-            }
-            Text(entry.summary)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-          .padding(.vertical, 4)
+          AuditEntryRow(entry: entry)
         }
       }
     }
@@ -3517,5 +3551,51 @@ private struct AuditSection: View {
 
   private var confirmationCount: Int {
     entries.filter { $0.status == .needsConfirmation }.count
+  }
+}
+
+private struct AuditEntryRow: View {
+  let entry: AuditEntry
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: entry.status.systemImage)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(entry.status.tint)
+        .frame(width: 28, height: 28)
+        .background(entry.status.tint.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 5) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+          Text(entry.toolName)
+            .font(.caption.monospaced().weight(.semibold))
+            .lineLimit(1)
+
+          Spacer(minLength: 8)
+
+          Text(entry.status.displayName)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(entry.status.tint)
+        }
+
+        Text(entry.summary)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .lineLimit(3)
+
+        Text(entry.date.formatted(date: .abbreviated, time: .shortened))
+          .font(.caption2)
+          .foregroundStyle(.tertiary)
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.panel)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(entry.status.tint.opacity(0.16), lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
