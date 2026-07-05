@@ -3349,58 +3349,117 @@ private struct PhotosSection: View {
   let onConfirmPreviewTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Photos")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Photos")
+            .font(.headline)
+          Text("Permission-scoped PhotoKit actions with previews before mutations.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      HStack {
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: status.isEmpty ? "Unknown" : "Checked",
+          systemImage: status.isEmpty ? "photo.on.rectangle" : "checkmark.circle")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Assets", value: "\(assets.count)", systemImage: "photo.stack",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Labels", value: "\(labeledClassificationCount)",
+          systemImage: "tag", tint: .accentColor)
+        IndexMetricTile(
+          title: "Preview", value: hasPendingPreview ? "Ready" : "None",
+          systemImage: "checkmark.shield", tint: hasPendingPreview ? .orange : .secondary)
+      }
+
+      Text("Bulk remove, hide, and delete actions require a preview before confirmation.")
+        .agentOutputBlock()
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
         Button(action: onCheckTapped) {
           Label("Status", systemImage: "photo.on.rectangle")
         }
         .buttonStyle(.bordered)
 
-        Button("Request", action: onRequestTapped)
-          .buttonStyle(.bordered)
+        Button(action: onRequestTapped) {
+          Label("Request", systemImage: "hand.raised")
+        }
+        .buttonStyle(.bordered)
 
-        Text(status)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
+        Button(action: onListTapped) {
+          Label("Assets", systemImage: "photo.stack")
+        }
+        .buttonStyle(.bordered)
 
-      HStack {
-        Button("List Assets", action: onListTapped)
-          .buttonStyle(.bordered)
-        Button("Screenshots", action: onScreenshotsTapped)
-          .buttonStyle(.bordered)
-        Button("Classify", action: onClassifyTapped)
-          .buttonStyle(.bordered)
+        Button(action: onScreenshotsTapped) {
+          Label("Screenshots", systemImage: "camera.viewfinder")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onClassifyTapped) {
+          Label("Classify", systemImage: "tag")
+        }
+        .buttonStyle(.bordered)
       }
 
       TextField("Album title", text: $albumTitle)
         .textFieldStyle(.roundedBorder)
 
-      HStack {
-        Button("Album", action: onCreateAlbumTapped)
-          .buttonStyle(.bordered)
-        Button("Add", action: onAddToAlbumTapped)
-          .buttonStyle(.bordered)
-        Button("Favorite", action: onFavoriteTapped)
-          .buttonStyle(.bordered)
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onCreateAlbumTapped) {
+          Label("Album", systemImage: "rectangle.stack.badge.plus")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onAddToAlbumTapped) {
+          Label("Add", systemImage: "plus.rectangle.on.folder")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onFavoriteTapped) {
+          Label("Favorite", systemImage: "heart")
+        }
+        .buttonStyle(.bordered)
       }
 
-      HStack {
-        Button("Remove", action: onRemovePreviewTapped)
-          .buttonStyle(.bordered)
-        Button("Hide", action: onHidePreviewTapped)
-          .buttonStyle(.bordered)
-        Button("Delete", action: onDeletePreviewTapped)
-          .buttonStyle(.bordered)
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onRemovePreviewTapped) {
+          Label("Remove", systemImage: "minus.rectangle")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onHidePreviewTapped) {
+          Label("Hide", systemImage: "eye.slash")
+        }
+        .buttonStyle(.bordered)
+
+        Button(role: .destructive, action: onDeletePreviewTapped) {
+          Label("Delete", systemImage: "trash")
+        }
+        .buttonStyle(.bordered)
+      }
+
+      if !status.isEmpty {
+        Label(status, systemImage: "photo.on.rectangle")
+          .foregroundStyle(.secondary)
+          .agentOutputBlock(monospaced: true)
       }
 
       if !preview.isEmpty {
-        Text(preview)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Label(preview, systemImage: hasPendingPreview ? "checkmark.shield" : "info.circle")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(hasPendingPreview ? .orange : .secondary)
+          .padding(10)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background((hasPendingPreview ? Color.orange : Color.secondary).opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
         if hasPendingPreview {
           Button("Confirm", role: .destructive, action: onConfirmPreviewTapped)
             .buttonStyle(.borderedProminent)
@@ -3408,25 +3467,86 @@ private struct PhotosSection: View {
       }
 
       ForEach(assets) { asset in
-        VStack(alignment: .leading, spacing: 2) {
-          Text(asset.id)
-            .font(.caption.weight(.semibold))
-            .lineLimit(1)
-          Text("\(asset.pixelWidth)x\(asset.pixelHeight)")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
+        PhotoAssetRow(asset: asset)
       }
 
       ForEach(classifications, id: \.asset.id) { result in
         if !result.labels.isEmpty {
-          Text("\(result.asset.id): \(result.labels.map(\.rawValue).joined(separator: ", "))")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(2)
+          PhotoClassificationRow(result: result)
         }
       }
     }
+  }
+
+  private var labeledClassificationCount: Int {
+    classifications.filter { !$0.labels.isEmpty }.count
+  }
+}
+
+private struct PhotoAssetRow: View {
+  let asset: PhotoAssetSummary
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: asset.isScreenshot ? "camera.viewfinder" : "photo")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(asset.isHidden ? .secondary : Color.accentColor)
+        .frame(width: 28, height: 28)
+        .background((asset.isHidden ? Color.secondary : Color.accentColor).opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(asset.id)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
+
+        Text("\(asset.pixelWidth)x\(asset.pixelHeight)")
+          .font(.caption2.monospaced())
+          .foregroundStyle(.secondary)
+      }
+
+      Spacer(minLength: 8)
+
+      if asset.isFavorite {
+        Image(systemName: "heart.fill")
+          .font(.caption)
+          .foregroundStyle(.pink)
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
+}
+
+private struct PhotoClassificationRow: View {
+  let result: PhotoClassificationResult
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Label(result.asset.id, systemImage: "tag")
+        .font(.caption.weight(.semibold))
+        .lineLimit(1)
+
+      Text(result.labels.map(\.rawValue).joined(separator: ", "))
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .lineLimit(2)
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.panel)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
