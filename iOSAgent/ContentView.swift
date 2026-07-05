@@ -2091,7 +2091,7 @@ private struct ToolCallCard: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack {
-        Label(item.title, systemImage: "terminal")
+        Label(item.title, systemImage: statusSystemImage)
           .font(.caption.monospaced().weight(.semibold))
           .foregroundStyle(.primary)
         Spacer()
@@ -2119,12 +2119,16 @@ private struct ToolCallCard: View {
       }
       if showsPreview {
         VStack(alignment: .leading, spacing: 4) {
-          Text("Preview")
+          Label("Preview", systemImage: "checkmark.shield")
             .font(.caption2.weight(.semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(statusColor)
           Text(previewText)
             .font(.caption)
         }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(statusColor.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
       }
       if !item.result.isEmpty {
         VStack(alignment: .leading, spacing: 4) {
@@ -2141,7 +2145,7 @@ private struct ToolCallCard: View {
     .background(AgentTheme.panel)
     .overlay(
       RoundedRectangle(cornerRadius: 14, style: .continuous)
-        .stroke(Color.accentColor.opacity(0.16), lineWidth: 1)
+        .stroke(statusColor.opacity(0.18), lineWidth: 1)
     )
     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
   }
@@ -2195,6 +2199,21 @@ private struct ToolCallCard: View {
       .orange
     default:
       .secondary
+    }
+  }
+
+  private var statusSystemImage: String {
+    switch item.status {
+    case "Done":
+      "checkmark.circle"
+    case "Failed":
+      "xmark.octagon"
+    case "Confirm":
+      "checkmark.shield"
+    case "Waiting":
+      "hourglass"
+    default:
+      "terminal"
     }
   }
 }
