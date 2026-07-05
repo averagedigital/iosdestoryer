@@ -35,6 +35,7 @@ struct ContentView: View {
   @State private var shareInboxStatus = ""
   @State private var localIndex = LocalIndex(chunks: [], skippedFiles: [])
   @State private var indexQuery = ""
+  @State private var indexChunkFilename = ""
   @State private var indexResults: [IndexedChunk] = []
   @State private var indexBundleMarkdown = ""
   @State private var ocrText = ""
@@ -302,10 +303,12 @@ struct ContentView: View {
             IndexSection(
               index: localIndex,
               query: $indexQuery,
+              chunkFilename: $indexChunkFilename,
               results: indexResults,
               bundleMarkdown: indexBundleMarkdown,
               onRebuildTapped: rebuildIndex,
               onSearchTapped: searchIndex,
+              onGetChunksTapped: getIndexChunks,
               onExportTapped: exportIndexBundle
             )
             .agentPanel()
@@ -737,6 +740,23 @@ struct ContentView: View {
     }
   }
 
+  private func getIndexChunks() {
+    let filename = indexChunkFilename.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !filename.isEmpty else {
+      indexResults = []
+      indexBundleMarkdown = ""
+      auditLog.record(toolName: "index.get_chunks", summary: "Empty filename", status: .failed)
+      return
+    }
+
+    indexResults = localIndex.chunks(for: filename)
+    indexBundleMarkdown = ""
+    auditLog.record(
+      toolName: "index.get_chunks",
+      summary: "\(indexResults.count) chunks for \(filename)",
+      status: .succeeded)
+  }
+
   private func exportIndexBundle() {
     indexBundleMarkdown = localIndex.exportContextBundle(
       title: indexQuery.isEmpty ? "Indexed Context" : indexQuery, chunks: indexResults)
@@ -774,6 +794,9 @@ struct ContentView: View {
     case "index.search":
       indexQuery = message
       searchIndex()
+    case "index.get_chunks":
+      indexChunkFilename = chunkFilenameCandidate(from: message)
+      getIndexChunks()
     case "index.export_context_bundle":
       exportIndexBundle()
     case "reminders.create":
@@ -809,6 +832,11 @@ struct ContentView: View {
 
     return latestRouteResult(route, after: previousAuditCount)
       ?? ChatToolResult(status: "Failed", summary: "No tool result recorded.")
+  }
+
+  private func chunkFilenameCandidate(from message: String) -> String {
+    message.split(whereSeparator: \.isWhitespace).map(String.init).last { $0.contains(".") }
+      ?? message
   }
 
   private func latestRouteResult(_ route: AgentCommandRoute, after count: Int) -> ChatToolResult? {
@@ -3063,10 +3091,12 @@ private struct FileSearchResultRow: View {
 private struct IndexSection: View {
   let index: LocalIndex
   @Binding var query: String
+  @Binding var chunkFilename: String
   let results: [IndexedChunk]
   let bundleMarkdown: String
   let onRebuildTapped: () -> Void
   let onSearchTapped: () -> Void
+  let onGetChunksTapped: () -> Void
   let onExportTapped: () -> Void
 
   var body: some View {
@@ -3120,6 +3150,17 @@ private struct IndexSection: View {
         .disabled(trimmedQuery.isEmpty)
       }
 
+      HStack(spacing: 8) {
+        TextField("Filename for chunks", text: $chunkFilename)
+          .textFieldStyle(.roundedBorder)
+          .textInputAutocapitalization(.never)
+        Button(action: onGetChunksTapped) {
+          Image(systemName: "doc.text.magnifyingglass")
+        }
+        .buttonStyle(.bordered)
+        .disabled(trimmedChunkFilename.isEmpty)
+      }
+
       ForEach(results) { chunk in
         IndexResultRow(chunk: chunk)
       }
@@ -3165,6 +3206,10 @@ private struct IndexSection: View {
 
   private var trimmedQuery: String {
     query.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  private var trimmedChunkFilename: String {
+    chunkFilename.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 }
 

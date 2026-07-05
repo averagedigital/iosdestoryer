@@ -13,6 +13,9 @@ public struct AgentCommandRouter: Sendable {
     if containsAny(text, ["index folder", "проиндексируй папку", "индексируй папку"]) {
       return AgentCommandRoute(toolName: "files.index_folder")
     }
+    if containsAny(text, ["get chunks", "chunks for", "покажи чанки", "фрагменты файла"]) {
+      return AgentCommandRoute(toolName: "index.get_chunks")
+    }
     if containsAny(text, ["shortcut", "shortcuts", "команду", "быструю команду"]) {
       return AgentCommandRoute(toolName: "shortcuts.run_user_configured_shortcut")
     }

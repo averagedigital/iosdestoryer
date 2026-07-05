@@ -53,6 +53,10 @@ final class AgentCommandRouterTests: XCTestCase {
     XCTAssertEqual(router.route("проиндексируй папку")?.toolName, "files.index_folder")
   }
 
+  func testRoutesGetChunksRequest() {
+    XCTAssertEqual(router.route("покажи чанки water.txt")?.toolName, "index.get_chunks")
+  }
+
   func testReturnsNilForUnsupportedMessage() {
     XCTAssertNil(router.route("привет"))
   }
