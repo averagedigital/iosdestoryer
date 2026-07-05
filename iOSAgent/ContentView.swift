@@ -2011,11 +2011,18 @@ private struct ChatScreen: View {
       ScrollView {
         LazyVStack(alignment: .leading, spacing: 14) {
           VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .top, spacing: 12) {
+              Image(systemName: "iphone.gen3.radiowaves.left.and.right")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 38, height: 38)
+                .background(AgentTheme.accentWash)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
               VStack(alignment: .leading, spacing: 4) {
                 Text("Workspace")
                   .font(.title2.weight(.semibold))
-                Text("Local agent")
+                Text("Permission-scoped local agent")
                   .font(.caption.weight(.medium))
                   .foregroundStyle(.secondary)
               }
