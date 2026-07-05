@@ -2041,8 +2041,15 @@ private struct ChatScreen: View {
       .background(AgentTheme.canvas)
 
       HStack(spacing: 10) {
+        Image(systemName: "sparkle.magnifyingglass")
+          .font(.callout.weight(.semibold))
+          .foregroundStyle(Color.accentColor)
+          .frame(width: 30, height: 30)
+          .background(AgentTheme.accentWash)
+          .clipShape(Circle())
+
         TextField("Message", text: $message, axis: .vertical)
-          .textFieldStyle(.roundedBorder)
+          .textFieldStyle(.plain)
           .lineLimit(1...4)
 
         Button(action: onSendTapped) {
@@ -2050,12 +2057,22 @@ private struct ChatScreen: View {
             .font(.headline.weight(.semibold))
             .frame(width: 36, height: 36)
         }
-        .buttonStyle(.borderedProminent)
+        .foregroundStyle(.white)
+        .background(Color.accentColor)
         .clipShape(Circle())
         .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        .opacity(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.45 : 1)
       }
-      .padding()
-      .background(.bar)
+      .padding(8)
+      .background(.regularMaterial)
+      .overlay(
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+          .stroke(AgentTheme.ring, lineWidth: 1)
+      )
+      .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+      .padding(.horizontal)
+      .padding(.vertical, 10)
+      .background(.ultraThinMaterial)
     }
   }
 }
