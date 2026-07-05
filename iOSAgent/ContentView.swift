@@ -4424,41 +4424,117 @@ private struct LocalModelSection: View {
   let onEmbedTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Local Models")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Local Models")
+            .font(.headline)
+          Text(
+            "On-device NaturalLanguage checks with explicit unavailable states for missing models."
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
 
-      Text("Runs only on device. Summarize/embed stay unavailable until a local model is bundled.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: status.isEmpty ? "Not checked" : "Checked",
+          systemImage: status.isEmpty ? "cpu" : "checkmark.circle")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Input", value: "\(inputWordCount)", systemImage: "text.word.spacing",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Classify", value: classification == nil ? "None" : "Ready",
+          systemImage: "tag", tint: classification == nil ? .secondary : .accentColor)
+        IndexMetricTile(
+          title: "Remote", value: "No", systemImage: "network.slash", tint: .secondary)
+      }
+
+      Text(
+        "Summarize and embed fail explicitly until a bundled local model exists; no remote fallback is used."
+      )
+      .agentOutputBlock()
 
       TextField("Text", text: $text, axis: .vertical)
         .textFieldStyle(.roundedBorder)
         .lineLimit(2...4)
 
-      HStack {
-        Button("Availability", action: onAvailabilityTapped)
-          .buttonStyle(.bordered)
-        Button("Classify", action: onClassifyTapped)
-          .buttonStyle(.bordered)
-        Button("Summarize", action: onSummarizeTapped)
-          .buttonStyle(.bordered)
-        Button("Embed", action: onEmbedTapped)
-          .buttonStyle(.bordered)
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onAvailabilityTapped) {
+          Label("Availability", systemImage: "cpu")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onClassifyTapped) {
+          Label("Classify", systemImage: "tag")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onSummarizeTapped) {
+          Label("Summarize", systemImage: "text.alignleft")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onEmbedTapped) {
+          Label("Embed", systemImage: "point.3.connected.trianglepath.dotted")
+        }
+        .buttonStyle(.bordered)
       }
 
       if let classification {
-        Text("\(classification.label) \(Int(classification.confidence * 100))%")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        LocalClassificationRow(classification: classification)
       }
 
       if !status.isEmpty {
-        Text(status)
-          .font(.caption)
+        Label(status, systemImage: statusIcon)
+          .agentOutputBlock(monospaced: true)
+      }
+    }
+  }
+
+  private var inputWordCount: Int {
+    text.split(whereSeparator: \.isWhitespace).count
+  }
+
+  private var statusIcon: String {
+    status.localizedCaseInsensitiveContains("unavailable")
+      ? "exclamationmark.triangle" : "info.circle"
+  }
+}
+
+private struct LocalClassificationRow: View {
+  let classification: LocalModelClassification
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: "tag")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 28, height: 28)
+        .background(AgentTheme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(classification.label)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+        Text("\(Int(classification.confidence * 100))% confidence")
+          .font(.caption2.monospacedDigit())
           .foregroundStyle(.secondary)
       }
     }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
@@ -4482,13 +4558,16 @@ private struct AuditSection: View {
         AgentStatusPill(text: entries.isEmpty ? "Idle" : "Active", systemImage: "clock")
       }
 
-      HStack(spacing: 8) {
-        AgentStatusPill(text: "\(entries.count) entries", systemImage: "list.bullet.clipboard")
-          .monospacedDigit()
-        AgentStatusPill(text: "\(failedCount) failed", systemImage: "xmark.octagon")
-          .monospacedDigit()
-        AgentStatusPill(text: "\(confirmationCount) confirm", systemImage: "checkmark.shield")
-          .monospacedDigit()
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Entries", value: "\(entries.count)", systemImage: "list.bullet.clipboard",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Failed", value: "\(failedCount)", systemImage: "xmark.octagon",
+          tint: failedCount == 0 ? .secondary : .red)
+        IndexMetricTile(
+          title: "Confirm", value: "\(confirmationCount)", systemImage: "checkmark.shield",
+          tint: confirmationCount == 0 ? .secondary : .orange)
       }
 
       if !persistenceStatus.isEmpty {
