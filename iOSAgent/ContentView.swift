@@ -2664,19 +2664,41 @@ private struct FileImportSection: View {
   let onBundleTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Files")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Files")
+            .font(.headline)
+          Text("User-picked documents copied into local app storage.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      Text("Import a document from the Files app to grant access only to the item you pick.")
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
+        Spacer(minLength: 8)
 
-      Text("Files are copied into this app and stay local.")
-        .font(.caption)
-        .foregroundStyle(.secondary)
+        AgentStatusPill(
+          text: importedFileName == nil ? "No file" : "Selected",
+          systemImage: importedFileName == nil ? "doc" : "doc.badge.checkmark"
+        )
+      }
 
-      HStack {
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Sources", value: "\(allowedSources.count)", systemImage: "folder",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Matches", value: "\(searchReport.matches.count)",
+          systemImage: "doc.text.magnifyingglass", tint: .accentColor)
+        IndexMetricTile(
+          title: "Skipped", value: "\(searchReport.skippedFiles.count)",
+          systemImage: "exclamationmark.triangle",
+          tint: searchReport.skippedFiles.isEmpty ? .secondary : .orange)
+      }
+
+      Text("Files stay local. The agent only sees items you import or share into this app.")
+        .agentOutputBlock()
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
         Button(action: onImportTapped) {
           Label(importedFileName ?? "Import File", systemImage: "doc.badge.plus")
         }
@@ -2686,108 +2708,108 @@ private struct FileImportSection: View {
           Label("Import Folder", systemImage: "folder.badge.plus")
         }
         .buttonStyle(.bordered)
-      }
 
-      Button(action: onSourcesTapped) {
-        Label("Allowed Sources", systemImage: "folder")
-      }
-      .buttonStyle(.bordered)
+        Button(action: onSourcesTapped) {
+          Label("Sources", systemImage: "folder")
+        }
+        .buttonStyle(.bordered)
 
-      Button(action: onIndexFolderTapped) {
-        Label("Index Folder", systemImage: "folder.badge.gearshape")
+        Button(action: onIndexFolderTapped) {
+          Label("Index Folder", systemImage: "folder.badge.gearshape")
+        }
+        .buttonStyle(.bordered)
       }
-      .buttonStyle(.bordered)
 
       if let importedFileName {
-        Text("Selected: \(importedFileName)")
-          .font(.caption)
+        Label(importedFileName, systemImage: "doc.badge.checkmark")
           .foregroundStyle(.secondary)
+          .agentOutputBlock()
       }
 
-      ForEach(allowedSources) { source in
-        Text("\(source.name): \(source.url.lastPathComponent)")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+      if !allowedSources.isEmpty {
+        VStack(spacing: 8) {
+          ForEach(allowedSources) { source in
+            FileSourceRow(source: source)
+          }
+        }
       }
 
-      TextField("New UTF-8 filename", text: $fileWriteName)
-        .textFieldStyle(.roundedBorder)
-      TextField("Text to write", text: $fileWriteText, axis: .vertical)
-        .textFieldStyle(.roundedBorder)
-        .lineLimit(1...4)
-      Button("Write Text File", action: onWriteTapped)
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Write local text")
+          .font(.caption.weight(.semibold))
+
+        TextField("New UTF-8 filename", text: $fileWriteName)
+          .textFieldStyle(.roundedBorder)
+        TextField("Text to write", text: $fileWriteText, axis: .vertical)
+          .textFieldStyle(.roundedBorder)
+          .lineLimit(1...4)
+        Button(action: onWriteTapped) {
+          Label("Write Text File", systemImage: "square.and.pencil")
+        }
         .buttonStyle(.bordered)
-        .disabled(fileWriteName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        .disabled(trimmedWriteName.isEmpty)
+      }
+      .padding(10)
+      .background(AgentTheme.field)
+      .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
       if !fileOperationStatus.isEmpty {
         Text(fileOperationStatus)
-          .font(.caption)
           .foregroundStyle(.secondary)
+          .agentOutputBlock(monospaced: true)
       }
 
-      HStack {
+      HStack(spacing: 8) {
         TextField("Search imported files", text: $searchQuery)
           .textFieldStyle(.roundedBorder)
-        Button("Search", action: onSearchTapped)
-          .buttonStyle(.bordered)
-          .disabled(searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        Button(action: onSearchTapped) {
+          Image(systemName: "magnifyingglass")
+        }
+        .buttonStyle(.bordered)
+        .disabled(trimmedSearchQuery.isEmpty)
       }
 
       TextField("Copy/move destination inside Imports", text: $fileDestinationPath)
         .textFieldStyle(.roundedBorder)
 
       ForEach(searchReport.matches) { result in
-        VStack(alignment: .leading, spacing: 6) {
-          Button(result.filename) {
-            onReadTapped(result)
-          }
-          .font(.caption)
-
-          HStack {
-            Button("Extract") {
-              onExtractTapped(result)
-            }
-            .font(.caption)
-
-            Button("Copy") {
-              onCopyTapped(result)
-            }
-            .font(.caption)
-            .disabled(fileDestinationPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-            Button("Move") {
-              onMoveTapped(result)
-            }
-            .font(.caption)
-            .disabled(fileDestinationPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-            Spacer()
-
-            Button("Preview Delete", role: .destructive) {
-              onDeletePreviewTapped(result)
-            }
-            .font(.caption)
-          }
-        }
+        FileSearchResultRow(
+          result: result,
+          destinationIsEmpty: trimmedDestinationPath.isEmpty,
+          onReadTapped: onReadTapped,
+          onCopyTapped: onCopyTapped,
+          onMoveTapped: onMoveTapped,
+          onExtractTapped: onExtractTapped,
+          onDeletePreviewTapped: onDeletePreviewTapped)
       }
 
       if let pendingDeletePreview {
-        Text("Delete preview: \(pendingDeletePreview.filename)")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-        Button("Confirm Delete", role: .destructive, action: onConfirmDeleteTapped)
-          .buttonStyle(.bordered)
+        VStack(alignment: .leading, spacing: 8) {
+          Label(pendingDeletePreview.filename, systemImage: "trash")
+            .font(.caption.weight(.semibold))
+          Button("Confirm Delete", role: .destructive, action: onConfirmDeleteTapped)
+            .buttonStyle(.bordered)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.red.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
       }
 
       if !searchReport.skippedFiles.isEmpty {
-        Text("\(searchReport.skippedFiles.count) non-text file skipped")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Label(
+          "\(searchReport.skippedFiles.count) non-text file skipped",
+          systemImage: "exclamationmark.triangle"
+        )
+        .foregroundStyle(.orange)
+        .agentOutputBlock()
       }
 
       if !searchReport.matches.isEmpty {
-        Button("Build Context Bundle", action: onBundleTapped)
-          .buttonStyle(.bordered)
+        Button(action: onBundleTapped) {
+          Label("Build Context Bundle", systemImage: "shippingbox")
+        }
+        .buttonStyle(.bordered)
       }
 
       if !readFileText.isEmpty {
@@ -2802,6 +2824,114 @@ private struct FileImportSection: View {
           .agentOutputBlock(monospaced: true)
       }
     }
+  }
+
+  private var trimmedWriteName: String {
+    fileWriteName.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  private var trimmedSearchQuery: String {
+    searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  private var trimmedDestinationPath: String {
+    fileDestinationPath.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+}
+
+private struct FileSourceRow: View {
+  let source: AllowedFileSource
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: "folder")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 28, height: 28)
+        .background(AgentTheme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(source.name)
+          .font(.caption.weight(.semibold))
+        Text(source.url.lastPathComponent)
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
+}
+
+private struct FileSearchResultRow: View {
+  let result: FileSearchResult
+  let destinationIsEmpty: Bool
+  let onReadTapped: (FileSearchResult) -> Void
+  let onCopyTapped: (FileSearchResult) -> Void
+  let onMoveTapped: (FileSearchResult) -> Void
+  let onExtractTapped: (FileSearchResult) -> Void
+  let onDeletePreviewTapped: (FileSearchResult) -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 8) {
+        Label(result.filename, systemImage: "doc.text")
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+        Spacer(minLength: 8)
+        Button(action: { onReadTapped(result) }) {
+          Image(systemName: "eye")
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel("Read \(result.filename)")
+      }
+
+      HStack(spacing: 8) {
+        Button(action: { onExtractTapped(result) }) {
+          Image(systemName: "text.viewfinder")
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel("Extract text from \(result.filename)")
+
+        Button(action: { onCopyTapped(result) }) {
+          Image(systemName: "doc.on.doc")
+        }
+        .buttonStyle(.bordered)
+        .disabled(destinationIsEmpty)
+        .accessibilityLabel("Copy \(result.filename)")
+
+        Button(action: { onMoveTapped(result) }) {
+          Image(systemName: "arrow.right.doc.on.clipboard")
+        }
+        .buttonStyle(.bordered)
+        .disabled(destinationIsEmpty)
+        .accessibilityLabel("Move \(result.filename)")
+
+        Spacer(minLength: 8)
+
+        Button(role: .destructive, action: { onDeletePreviewTapped(result) }) {
+          Image(systemName: "trash")
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel("Preview deleting \(result.filename)")
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.panel)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
