@@ -2324,25 +2324,78 @@ private struct ToolCallCard: View {
 
 private struct PrivacySection: View {
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Privacy")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Privacy")
+          .font(.headline)
+        Text("Local-first boundaries for agent actions.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
       HStack(spacing: 8) {
         AgentStatusPill(text: "Local data", systemImage: "iphone")
         AgentStatusPill(text: "No remote model", systemImage: "network.slash")
         AgentStatusPill(text: "No app scraping", systemImage: "hand.raised")
       }
-      Text(
-        "Local-first: imported files, shared items, index chunks, recordings, and audit entries stay in this app unless you export or share them."
+
+      PrivacyBoundaryRow(
+        title: "Stored locally",
+        summary:
+          "Imported files, shared items, index chunks, recordings, and audit entries stay in this app.",
+        systemImage: "internaldrive",
+        tint: .green
       )
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      Text(
-        "No third-party app containers are read, and no arbitrary iPhone GUI control is attempted."
+
+      PrivacyBoundaryRow(
+        title: "Explicit export only",
+        summary: "Private content leaves the app only when the user exports or shares it.",
+        systemImage: "square.and.arrow.up",
+        tint: .accentColor
       )
-      .font(.caption)
-      .foregroundStyle(.secondary)
+
+      PrivacyBoundaryRow(
+        title: "Unsupported access blocked",
+        summary:
+          "No third-party app containers are read and no arbitrary iPhone GUI control is attempted.",
+        systemImage: "hand.raised",
+        tint: .orange
+      )
     }
+  }
+}
+
+private struct PrivacyBoundaryRow: View {
+  let title: String
+  let summary: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: systemImage)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(tint)
+        .frame(width: 28, height: 28)
+        .background(tint.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(title)
+          .font(.caption.weight(.semibold))
+        Text(summary)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
