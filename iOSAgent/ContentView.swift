@@ -3125,11 +3125,40 @@ private struct VisionSection: View {
   let onScanDocumentTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Vision")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Vision")
+            .font(.headline)
+          Text("Foreground camera capture, document scan, OCR, and barcode reading.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      HStack {
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: cameraStatus.isEmpty ? "Idle" : "Updated",
+          systemImage: cameraStatus.isEmpty ? "camera.viewfinder" : "checkmark.circle"
+        )
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Camera", value: cameraStatus.isEmpty ? "Idle" : "Set",
+          systemImage: "camera.viewfinder", tint: .accentColor)
+        IndexMetricTile(
+          title: "OCR", value: ocrText.isEmpty ? "0" : "\(ocrLineCount)",
+          systemImage: "text.viewfinder", tint: .accentColor)
+        IndexMetricTile(
+          title: "Barcodes", value: barcodeText.isEmpty ? "0" : "\(barcodeLineCount)",
+          systemImage: "barcode.viewfinder", tint: .accentColor)
+      }
+
+      Text("Camera and scanner actions run in the foreground and require visible permission.")
+        .agentOutputBlock()
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
         Button(action: onOCRImageTapped) {
           Label("OCR", systemImage: "text.viewfinder")
         }
@@ -3139,16 +3168,17 @@ private struct VisionSection: View {
           Label("Barcode", systemImage: "barcode.viewfinder")
         }
         .buttonStyle(.bordered)
-      }
 
-      HStack {
-        Button("Camera Status", action: onCameraStatusTapped)
-          .buttonStyle(.bordered)
-        Button("Camera Request", action: onCameraPermissionTapped)
-          .buttonStyle(.bordered)
-      }
+        Button(action: onCameraStatusTapped) {
+          Label("Status", systemImage: "lock.shield")
+        }
+        .buttonStyle(.bordered)
 
-      HStack {
+        Button(action: onCameraPermissionTapped) {
+          Label("Request", systemImage: "hand.raised")
+        }
+        .buttonStyle(.bordered)
+
         Button(action: onTakePhotoTapped) {
           Label("Photo", systemImage: "camera")
         }
@@ -3161,23 +3191,57 @@ private struct VisionSection: View {
       }
 
       if !cameraStatus.isEmpty {
-        Text(cameraStatus)
-          .font(.caption)
+        Label(cameraStatus, systemImage: "camera.viewfinder")
           .foregroundStyle(.secondary)
+          .agentOutputBlock(monospaced: true)
       }
 
       if !ocrText.isEmpty {
-        Text(ocrText)
-          .lineLimit(8)
-          .agentOutputBlock()
+        VisionResultBlock(
+          title: "OCR result", systemImage: "text.viewfinder", text: ocrText, monospaced: false,
+          lineLimit: 8)
       }
 
       if !barcodeText.isEmpty {
-        Text(barcodeText)
-          .lineLimit(4)
-          .agentOutputBlock(monospaced: true)
+        VisionResultBlock(
+          title: "Barcode result", systemImage: "barcode.viewfinder", text: barcodeText,
+          monospaced: true, lineLimit: 4)
       }
     }
+  }
+
+  private var ocrLineCount: Int {
+    ocrText.split(whereSeparator: \.isNewline).count
+  }
+
+  private var barcodeLineCount: Int {
+    barcodeText.split(whereSeparator: \.isNewline).count
+  }
+}
+
+private struct VisionResultBlock: View {
+  let title: String
+  let systemImage: String
+  let text: String
+  let monospaced: Bool
+  let lineLimit: Int
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Label(title, systemImage: systemImage)
+        .font(.caption.weight(.semibold))
+      Text(text)
+        .lineLimit(lineLimit)
+        .agentOutputBlock(monospaced: monospaced)
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.panel)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
