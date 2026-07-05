@@ -1892,18 +1892,41 @@ private struct ChatBubble: View {
   let isUser: Bool
 
   var body: some View {
-    Text(text)
-      .font(.callout)
-      .foregroundStyle(isUser ? .primary : .secondary)
-      .padding(12)
-      .frame(maxWidth: 310, alignment: isUser ? .trailing : .leading)
-      .background(isUser ? AgentTheme.accentWash : AgentTheme.panel)
-      .overlay(
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-          .stroke(isUser ? Color.accentColor.opacity(0.18) : AgentTheme.softRing, lineWidth: 1)
-      )
-      .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-      .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
+    HStack(alignment: .bottom, spacing: 8) {
+      if isUser {
+        Spacer(minLength: 34)
+      } else {
+        avatar
+      }
+
+      Text(text)
+        .font(.callout)
+        .foregroundStyle(isUser ? .primary : .secondary)
+        .padding(12)
+        .frame(maxWidth: 310, alignment: isUser ? .trailing : .leading)
+        .background(isUser ? AgentTheme.accentWash : AgentTheme.panel)
+        .overlay(
+          RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .stroke(isUser ? Color.accentColor.opacity(0.18) : AgentTheme.softRing, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+      if isUser {
+        avatar
+      } else {
+        Spacer(minLength: 34)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
+  }
+
+  private var avatar: some View {
+    Image(systemName: isUser ? "person.crop.circle.fill" : "sparkles")
+      .font(.caption.weight(.semibold))
+      .foregroundStyle(isUser ? Color.accentColor : .secondary)
+      .frame(width: 28, height: 28)
+      .background(isUser ? AgentTheme.accentWash : AgentTheme.field)
+      .clipShape(Circle())
   }
 }
 
