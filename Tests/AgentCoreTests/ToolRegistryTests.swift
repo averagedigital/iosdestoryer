@@ -158,6 +158,23 @@ final class ToolRegistryTests: XCTestCase {
     XCTAssertTrue(destructiveTools.allSatisfy(\.requiresPreview))
   }
 
+  func testPreviewNamedToolsRequirePreviewEvenWhenNotDestructive() {
+    let registry = ToolRegistry.defaultRegistry()
+
+    let previewToolNames = registry.tools.map(\.name).filter {
+      $0.contains("_with_preview") || $0.contains("_preview")
+    }
+
+    XCTAssertFalse(previewToolNames.isEmpty)
+    for toolName in previewToolNames {
+      XCTAssertEqual(registry.tool(named: toolName)?.requiresPreview, true, toolName)
+    }
+    XCTAssertEqual(registry.tool(named: "contacts.update_with_preview")?.isDestructive, false)
+    XCTAssertEqual(registry.tool(named: "contacts.merge_preview")?.isDestructive, false)
+    XCTAssertEqual(registry.tool(named: "calendar.update_event_with_preview")?.isDestructive, false)
+    XCTAssertEqual(registry.tool(named: "reminders.update_with_preview")?.isDestructive, false)
+  }
+
   func testAuditLogRecordsToolResultsInOrder() {
     var log = AuditLog()
 

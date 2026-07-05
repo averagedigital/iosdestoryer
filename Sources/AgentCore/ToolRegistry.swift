@@ -62,11 +62,14 @@ public struct ToolRegistry: Sendable {
       AgentTool(name: "contacts.search", domain: .contacts, appleFrameworks: ["Contacts"]),
       AgentTool(name: "contacts.create", domain: .contacts, appleFrameworks: ["Contacts"]),
       AgentTool(
-        name: "contacts.update_with_preview", domain: .contacts, appleFrameworks: ["Contacts"]),
+        name: "contacts.update_with_preview", domain: .contacts, appleFrameworks: ["Contacts"],
+        requiresPreview: true),
       AgentTool(
         name: "contacts.find_duplicate_candidates", domain: .contacts,
         appleFrameworks: ["Contacts"]),
-      AgentTool(name: "contacts.merge_preview", domain: .contacts, appleFrameworks: ["Contacts"]),
+      AgentTool(
+        name: "contacts.merge_preview", domain: .contacts, appleFrameworks: ["Contacts"],
+        requiresPreview: true),
       AgentTool(
         name: "contacts.delete_with_preview", domain: .contacts, appleFrameworks: ["Contacts"],
         isDestructive: true),
@@ -76,7 +79,7 @@ public struct ToolRegistry: Sendable {
       AgentTool(name: "calendar.create_event", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(
         name: "calendar.update_event_with_preview", domain: .calendar,
-        appleFrameworks: ["EventKit"]),
+        appleFrameworks: ["EventKit"], requiresPreview: true),
       AgentTool(
         name: "calendar.delete_event_with_preview", domain: .calendar,
         appleFrameworks: ["EventKit"], isDestructive: true),
@@ -85,7 +88,8 @@ public struct ToolRegistry: Sendable {
       AgentTool(name: "reminders.search", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(name: "reminders.create", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(
-        name: "reminders.update_with_preview", domain: .calendar, appleFrameworks: ["EventKit"]),
+        name: "reminders.update_with_preview", domain: .calendar, appleFrameworks: ["EventKit"],
+        requiresPreview: true),
       AgentTool(name: "reminders.complete", domain: .calendar, appleFrameworks: ["EventKit"]),
       AgentTool(
         name: "notify.permission_status", domain: .notifications,
@@ -163,22 +167,21 @@ public struct AgentTool: Identifiable, Equatable, Sendable {
   public let domain: ToolDomain
   public let appleFrameworks: [String]
   public let isDestructive: Bool
-
-  public var requiresPreview: Bool {
-    isDestructive
-  }
+  public let requiresPreview: Bool
 
   public var usesPublicAppleAPI: Bool {
     !appleFrameworks.isEmpty
   }
 
   public init(
-    name: String, domain: ToolDomain, appleFrameworks: [String], isDestructive: Bool = false
+    name: String, domain: ToolDomain, appleFrameworks: [String], isDestructive: Bool = false,
+    requiresPreview: Bool = false
   ) {
     self.name = name
     self.domain = domain
     self.appleFrameworks = appleFrameworks
     self.isDestructive = isDestructive
+    self.requiresPreview = isDestructive || requiresPreview
   }
 }
 
