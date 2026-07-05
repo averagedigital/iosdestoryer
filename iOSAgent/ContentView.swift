@@ -2016,9 +2016,17 @@ private struct ChatScreen: View {
                     message = suggestion.prompt
                   } label: {
                     Label(suggestion.title, systemImage: suggestion.systemImage)
+                      .padding(.horizontal, 10)
+                      .padding(.vertical, 8)
+                      .background(AgentTheme.field)
+                      .overlay(
+                        Capsule()
+                          .stroke(AgentTheme.softRing, lineWidth: 1)
+                      )
+                      .clipShape(Capsule())
                   }
                   .font(.caption.weight(.semibold))
-                  .buttonStyle(.bordered)
+                  .buttonStyle(.plain)
                 }
               }
             }
