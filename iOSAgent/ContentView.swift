@@ -1852,13 +1852,23 @@ private struct PermissionStatusTile: View {
   let item: PermissionOverviewItem
 
   var body: some View {
-    HStack(spacing: 9) {
-      Image(systemName: item.systemImage)
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(Color.accentColor)
-        .frame(width: 26, height: 26)
-        .background(AgentTheme.accentWash)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    HStack(alignment: .top, spacing: 9) {
+      ZStack(alignment: .bottomTrailing) {
+        Image(systemName: item.systemImage)
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(statusColor)
+          .frame(width: 28, height: 28)
+          .background(statusColor.opacity(0.12))
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+        Image(systemName: statusSystemImage)
+          .font(.system(size: 8, weight: .bold))
+          .foregroundStyle(statusColor)
+          .frame(width: 14, height: 14)
+          .background(AgentTheme.field)
+          .clipShape(Circle())
+          .offset(x: 3, y: 3)
+      }
 
       VStack(alignment: .leading, spacing: 1) {
         Text(item.title)
@@ -1866,6 +1876,7 @@ private struct PermissionStatusTile: View {
           .foregroundStyle(.secondary)
         Text(displayValue)
           .font(.caption.weight(.semibold))
+          .foregroundStyle(statusColor)
           .lineLimit(1)
           .minimumScaleFactor(0.78)
       }
@@ -1877,13 +1888,43 @@ private struct PermissionStatusTile: View {
     .background(AgentTheme.field)
     .overlay(
       RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .stroke(AgentTheme.softRing, lineWidth: 1)
+        .stroke(statusColor.opacity(0.16), lineWidth: 1)
     )
     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 
   private var displayValue: String {
     item.value.isEmpty ? "Not Checked" : item.value
+  }
+
+  private var normalizedValue: String {
+    displayValue.lowercased()
+  }
+
+  private var statusColor: Color {
+    if normalizedValue.contains("denied") || normalizedValue.contains("restricted") {
+      return .red
+    }
+    if normalizedValue.contains("limited") || normalizedValue.contains("not determined") {
+      return .orange
+    }
+    if normalizedValue.contains("authorized") || normalizedValue.contains("granted") {
+      return .green
+    }
+    return .secondary
+  }
+
+  private var statusSystemImage: String {
+    if normalizedValue.contains("denied") || normalizedValue.contains("restricted") {
+      return "xmark"
+    }
+    if normalizedValue.contains("limited") {
+      return "exclamationmark"
+    }
+    if normalizedValue.contains("authorized") || normalizedValue.contains("granted") {
+      return "checkmark"
+    }
+    return "minus"
   }
 }
 
