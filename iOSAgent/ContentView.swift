@@ -2602,54 +2602,72 @@ private struct IndexSection: View {
   let onExportTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Local Index")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Local Index")
+            .font(.headline)
+          Text("Searchable chunks from app-managed imports.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      HStack(spacing: 8) {
-        AgentStatusPill(text: "\(index.chunks.count) chunks", systemImage: "doc.text")
-          .monospacedDigit()
-        AgentStatusPill(text: "\(indexedFileCount) files", systemImage: "folder")
-          .monospacedDigit()
+        Spacer()
+
         AgentStatusPill(
-          text: "\(index.skippedFiles.count) skipped", systemImage: "exclamationmark.triangle"
-        )
-        .monospacedDigit()
+          text: index.chunks.isEmpty ? "Empty" : "Ready", systemImage: "internaldrive")
       }
 
-      HStack {
-        Button("Rebuild Index", action: onRebuildTapped)
-          .buttonStyle(.bordered)
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Chunks", value: "\(index.chunks.count)", systemImage: "doc.text.magnifyingglass",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Files", value: "\(indexedFileCount)", systemImage: "folder", tint: .accentColor)
+        IndexMetricTile(
+          title: "Skipped", value: "\(index.skippedFiles.count)",
+          systemImage: "exclamationmark.triangle",
+          tint: index.skippedFiles.isEmpty ? .secondary : .orange)
       }
+
+      Button(action: onRebuildTapped) {
+        Label("Rebuild Index", systemImage: "arrow.clockwise.circle")
+      }
+      .buttonStyle(.bordered)
 
       if index.chunks.isEmpty {
-        Text("No indexed text yet. Import files, then rebuild the index.")
+        Label("No indexed text yet. Import files, then rebuild the index.", systemImage: "tray")
           .font(.caption)
           .foregroundStyle(.secondary)
+          .agentOutputBlock()
       }
 
-      HStack {
+      HStack(spacing: 8) {
         TextField("Search index chunks", text: $query)
           .textFieldStyle(.roundedBorder)
-        Button("Search", action: onSearchTapped)
-          .buttonStyle(.bordered)
-          .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        Button(action: onSearchTapped) {
+          Image(systemName: "magnifyingglass")
+        }
+        .buttonStyle(.bordered)
+        .disabled(trimmedQuery.isEmpty)
       }
 
       ForEach(results) { chunk in
-        VStack(alignment: .leading, spacing: 3) {
-          Text("\(chunk.filename) #\(chunk.number)")
-            .font(.caption.weight(.semibold))
-          Text(chunk.text)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(3)
-        }
+        IndexResultRow(chunk: chunk)
+      }
+
+      if results.isEmpty && !trimmedQuery.isEmpty && !index.chunks.isEmpty {
+        Label("No matching chunks for this query.", systemImage: "doc.text.magnifyingglass")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .agentOutputBlock()
       }
 
       if !results.isEmpty {
-        Button("Export Indexed Context", action: onExportTapped)
-          .buttonStyle(.bordered)
+        Button(action: onExportTapped) {
+          Label("Export Indexed Context", systemImage: "square.and.arrow.up")
+        }
+        .buttonStyle(.bordered)
       }
 
       if !bundleMarkdown.isEmpty {
@@ -2659,15 +2677,96 @@ private struct IndexSection: View {
       }
 
       if !index.skippedFiles.isEmpty {
-        Text("\(index.skippedFiles.count) non-text file skipped")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Label(
+          "\(index.skippedFiles.count) non-text file skipped",
+          systemImage: "exclamationmark.triangle"
+        )
+        .font(.caption)
+        .foregroundStyle(.orange)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
       }
     }
   }
 
   private var indexedFileCount: Int {
     Set(index.chunks.map(\.filename)).count
+  }
+
+  private var trimmedQuery: String {
+    query.trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+}
+
+private struct IndexMetricTile: View {
+  let title: String
+  let value: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Image(systemName: systemImage)
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(tint)
+        .frame(width: 26, height: 26)
+        .background(tint.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 1) {
+        Text(value)
+          .font(.title3.weight(.semibold))
+          .monospacedDigit()
+        Text(title)
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
+}
+
+private struct IndexResultRow: View {
+  let chunk: IndexedChunk
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      HStack(spacing: 8) {
+        Label(chunk.filename, systemImage: "doc.text")
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+        Spacer(minLength: 8)
+        Text("#\(chunk.number)")
+          .font(.caption2.monospaced().weight(.semibold))
+          .foregroundStyle(.secondary)
+          .padding(.horizontal, 7)
+          .padding(.vertical, 3)
+          .background(AgentTheme.field)
+          .clipShape(Capsule())
+      }
+
+      Text(chunk.text)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(3)
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.panel)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
