@@ -3671,82 +3671,153 @@ private struct EventKitSection: View {
   let onConfirmPreviewTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Calendar")
-        .font(.headline)
-
-      HStack {
-        Button(action: onCalendarTapped) {
-          Label("Calendar Status", systemImage: "calendar")
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Calendar & Reminders")
+            .font(.headline)
+          Text("EventKit actions stay permission-scoped and use previews before event changes.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
-        .buttonStyle(.bordered)
 
-        Button("Request", action: onRequestCalendarTapped)
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: hasPendingPreview ? "Preview ready" : "Scoped",
+          systemImage: hasPendingPreview ? "checkmark.shield" : "calendar.badge.clock")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Events", value: "\(calendarEvents.count)", systemImage: "calendar",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Reminders", value: "\(reminders.count)", systemImage: "checklist",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Preview", value: hasPendingPreview ? "Ready" : "None",
+          systemImage: "checkmark.shield", tint: hasPendingPreview ? .orange : .secondary)
+      }
+
+      Text("Delete and update actions build an explicit preview before EventKit is changed.")
+        .agentOutputBlock()
+
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 8) {
+          Label("Calendar", systemImage: "calendar")
+            .font(.caption.weight(.semibold))
+          Spacer(minLength: 8)
+          Text(calendarStatusValue)
+            .font(.caption.monospaced())
+            .foregroundStyle(.secondary)
+        }
+
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+          Button(action: onCalendarTapped) {
+            Label("Status", systemImage: "calendar")
+          }
           .buttonStyle(.bordered)
 
-        Text(calendarStatus)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+          Button(action: onRequestCalendarTapped) {
+            Label("Request", systemImage: "hand.raised")
+          }
+          .buttonStyle(.bordered)
+        }
       }
+      .agentOutputBlock(monospaced: true)
 
       TextField("Calendar search", text: $calendarQuery)
         .textFieldStyle(.roundedBorder)
       TextField("Event title", text: $calendarEventTitle)
         .textFieldStyle(.roundedBorder)
-      HStack {
-        Button("Search Events", action: onCalendarSearchTapped)
-          .buttonStyle(.bordered)
-        Button("Create Event", action: onCalendarCreateTapped)
-          .buttonStyle(.bordered)
-      }
-      HStack {
-        Button("Update", action: onCalendarUpdatePreviewTapped)
-          .buttonStyle(.bordered)
-        Button("Delete", action: onCalendarDeletePreviewTapped)
-          .buttonStyle(.bordered)
-      }
 
-      ForEach(calendarEvents) { event in
-        Text(event.title)
-          .font(.caption)
-          .lineLimit(1)
-      }
-
-      HStack {
-        Button(action: onRemindersTapped) {
-          Label("Reminders Status", systemImage: "checklist")
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onCalendarSearchTapped) {
+          Label("Search", systemImage: "magnifyingglass")
         }
         .buttonStyle(.bordered)
 
-        Button("Request", action: onRequestRemindersTapped)
+        Button(action: onCalendarCreateTapped) {
+          Label("Create", systemImage: "calendar.badge.plus")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onCalendarUpdatePreviewTapped) {
+          Label("Update", systemImage: "square.and.pencil")
+        }
+        .buttonStyle(.bordered)
+
+        Button(role: .destructive, action: onCalendarDeletePreviewTapped) {
+          Label("Delete", systemImage: "trash")
+        }
+        .buttonStyle(.bordered)
+      }
+
+      ForEach(calendarEvents) { event in
+        CalendarEventRow(event: event)
+      }
+
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 8) {
+          Label("Reminders", systemImage: "checklist")
+            .font(.caption.weight(.semibold))
+          Spacer(minLength: 8)
+          Text(reminderStatusValue)
+            .font(.caption.monospaced())
+            .foregroundStyle(.secondary)
+        }
+
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+          Button(action: onRemindersTapped) {
+            Label("Status", systemImage: "checklist")
+          }
           .buttonStyle(.bordered)
 
-        Text(reminderStatus)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+          Button(action: onRequestRemindersTapped) {
+            Label("Request", systemImage: "hand.raised")
+          }
+          .buttonStyle(.bordered)
+        }
       }
+      .agentOutputBlock(monospaced: true)
 
       TextField("Reminder search", text: $reminderQuery)
         .textFieldStyle(.roundedBorder)
       TextField("Reminder title", text: $reminderTitle)
         .textFieldStyle(.roundedBorder)
-      HStack {
-        Button("Search Reminders", action: onReminderSearchTapped)
-          .buttonStyle(.bordered)
-        Button("Create Reminder", action: onReminderCreateTapped)
-          .buttonStyle(.bordered)
-      }
-      HStack {
-        Button("Update", action: onReminderUpdatePreviewTapped)
-          .buttonStyle(.bordered)
-        Button("Complete", action: onReminderCompleteTapped)
-          .buttonStyle(.bordered)
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onReminderSearchTapped) {
+          Label("Search", systemImage: "magnifyingglass")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onReminderCreateTapped) {
+          Label("Create", systemImage: "checklist.checked")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onReminderUpdatePreviewTapped) {
+          Label("Update", systemImage: "square.and.pencil")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onReminderCompleteTapped) {
+          Label("Complete", systemImage: "checkmark.circle")
+        }
+        .buttonStyle(.bordered)
       }
 
       if !preview.isEmpty {
-        Text(preview)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Label(preview, systemImage: hasPendingPreview ? "checkmark.shield" : "info.circle")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(hasPendingPreview ? .orange : .secondary)
+          .padding(10)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background((hasPendingPreview ? Color.orange : Color.secondary).opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
         if hasPendingPreview {
           Button("Confirm", role: .destructive, action: onConfirmPreviewTapped)
             .buttonStyle(.borderedProminent)
@@ -3754,11 +3825,112 @@ private struct EventKitSection: View {
       }
 
       ForEach(reminders) { reminder in
-        Text(reminder.isCompleted ? "\(reminder.title) - done" : reminder.title)
-          .font(.caption)
-          .lineLimit(1)
+        ReminderRow(reminder: reminder)
       }
     }
+  }
+
+  private var calendarStatusValue: String {
+    calendarStatus.isEmpty ? "Unknown" : calendarStatus
+  }
+
+  private var reminderStatusValue: String {
+    reminderStatus.isEmpty ? "Unknown" : reminderStatus
+  }
+}
+
+private struct CalendarEventRow: View {
+  let event: CalendarEventSummary
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: "calendar")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 28, height: 28)
+        .background(AgentTheme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(event.title)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+
+        HStack(spacing: 4) {
+          Text(event.startDate, style: .date)
+          Text(event.startDate, style: .time)
+          Text("-")
+          Text(event.endDate, style: .time)
+        }
+        .font(.caption2.monospacedDigit())
+        .foregroundStyle(.secondary)
+
+        if !event.notes.isEmpty {
+          Text(event.notes)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+        }
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
+}
+
+private struct ReminderRow: View {
+  let reminder: ReminderSummary
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: reminder.isCompleted ? "checkmark.circle.fill" : "circle")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(reminder.isCompleted ? Color.green : Color.accentColor)
+        .frame(width: 28, height: 28)
+        .background((reminder.isCompleted ? Color.green : Color.accentColor).opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(reminder.title)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+
+        if let dueDate = reminder.dueDate {
+          Text(dueDate, style: .date)
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.secondary)
+        }
+
+        if !reminder.notes.isEmpty {
+          Text(reminder.notes)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+        }
+      }
+
+      Spacer(minLength: 8)
+
+      if reminder.isCompleted {
+        Text("Done")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.green)
+      }
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
