@@ -4064,41 +4064,82 @@ private struct NotificationSection: View {
   let onCancelTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Notifications")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Notifications")
+            .font(.headline)
+          Text("Local UserNotifications scheduling with explicit permission and cancel control.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      HStack {
-        Button("Status", action: onStatusTapped)
-          .buttonStyle(.bordered)
-        Button("Request", action: onPermissionTapped)
-          .buttonStyle(.bordered)
-        Text(status)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: scheduledID.isEmpty ? "Idle" : "Scheduled",
+          systemImage: scheduledID.isEmpty ? "bell" : "bell.badge")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Delay", value: "\(Int(delaySeconds))s", systemImage: "timer",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Permission", value: statusValue, systemImage: "hand.raised",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Pending", value: scheduledID.isEmpty ? "No" : "Yes",
+          systemImage: "bell.badge", tint: scheduledID.isEmpty ? .secondary : .orange)
+      }
+
+      Text("Notifications are local to this app and can be cancelled by their scheduled ID.")
+        .agentOutputBlock()
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onStatusTapped) {
+          Label("Status", systemImage: "bell")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onPermissionTapped) {
+          Label("Request", systemImage: "hand.raised")
+        }
+        .buttonStyle(.bordered)
       }
 
       TextField("Title", text: $title)
         .textFieldStyle(.roundedBorder)
       TextField("Body", text: $notificationBody)
         .textFieldStyle(.roundedBorder)
-      Stepper("Delay \(Int(delaySeconds))s", value: $delaySeconds, in: 5...3600, step: 5)
 
-      HStack {
-        Button("Schedule", action: onScheduleTapped)
-          .buttonStyle(.bordered)
-        Button("Cancel", action: onCancelTapped)
-          .buttonStyle(.bordered)
-          .disabled(scheduledID.isEmpty)
+      Stepper(value: $delaySeconds, in: 5...3600, step: 5) {
+        Label("Delay \(Int(delaySeconds))s", systemImage: "timer")
+          .font(.caption.weight(.semibold))
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onScheduleTapped) {
+          Label("Schedule", systemImage: "bell.badge")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onCancelTapped) {
+          Label("Cancel", systemImage: "bell.slash")
+        }
+        .buttonStyle(.bordered)
+        .disabled(scheduledID.isEmpty)
       }
 
       if !scheduledID.isEmpty {
-        Text(scheduledID)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
+        Label(scheduledID, systemImage: "number")
+          .agentOutputBlock(monospaced: true)
       }
     }
+  }
+
+  private var statusValue: String {
+    status.isEmpty ? "Unknown" : status
   }
 }
 
@@ -4110,27 +4151,65 @@ private struct AppURLSection: View {
   let onOpenDeepLinkTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("URLs")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("URLs")
+            .font(.headline)
+          Text("Open explicit web URLs or user-visible deeplinks through UIApplication.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer(minLength: 8)
+
+        AgentStatusPill(text: status.isEmpty ? "Idle" : "Opened", systemImage: "link")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Web URL", value: webSchemeLabel, systemImage: "safari", tint: .accentColor)
+        IndexMetricTile(
+          title: "Deeplink", value: deepLinkSchemeLabel, systemImage: "link.circle",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Scope", value: "User", systemImage: "hand.tap", tint: .secondary)
+      }
+
+      Text("Deeplinks are explicit launches only; this does not read or control other app data.")
+        .agentOutputBlock()
 
       TextField("https://example.com", text: $urlString)
         .textFieldStyle(.roundedBorder)
-      Button("Open URL", action: onOpenURLTapped)
-        .buttonStyle(.bordered)
 
       TextField("app://path", text: $deepLinkString)
         .textFieldStyle(.roundedBorder)
-      Button("Open Deeplink", action: onOpenDeepLinkTapped)
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onOpenURLTapped) {
+          Label("Open URL", systemImage: "safari")
+        }
         .buttonStyle(.bordered)
 
+        Button(action: onOpenDeepLinkTapped) {
+          Label("Open Deeplink", systemImage: "link.circle")
+        }
+        .buttonStyle(.bordered)
+      }
+
       if !status.isEmpty {
-        Text(status)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
+        Label(status, systemImage: "info.circle")
+          .agentOutputBlock(monospaced: true)
       }
     }
+  }
+
+  private var webSchemeLabel: String {
+    URL(string: urlString)?.scheme?.uppercased() ?? "Invalid"
+  }
+
+  private var deepLinkSchemeLabel: String {
+    URL(string: deepLinkString)?.scheme?.uppercased() ?? "Invalid"
   }
 }
 
@@ -4144,40 +4223,96 @@ private struct AppIntentSection: View {
   let onRunShortcutTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("App Intents")
-        .font(.headline)
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("App Intents")
+            .font(.headline)
+          Text("Own app actions and user-configured Shortcuts, not arbitrary third-party control.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      HStack {
-        Button("List Actions", action: onListTapped)
-          .buttonStyle(.bordered)
-        Button("Invoke First", action: onInvokeTapped)
-          .buttonStyle(.bordered)
-          .disabled(actions.isEmpty)
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: actions.isEmpty ? "Not listed" : "\(actions.count) actions", systemImage: "bolt")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Actions", value: "\(actions.count)", systemImage: "bolt", tint: .accentColor)
+        IndexMetricTile(
+          title: "Shortcut", value: shortcutName.isEmpty ? "Empty" : "Named",
+          systemImage: "sparkles", tint: .accentColor)
+        IndexMetricTile(
+          title: "Scope", value: "Own app", systemImage: "app.badge", tint: .secondary)
+      }
+
+      Text("Shortcuts must be configured by the user; App Intents expose only this app's actions.")
+        .agentOutputBlock()
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onListTapped) {
+          Label("List Actions", systemImage: "list.bullet")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onInvokeTapped) {
+          Label("Invoke First", systemImage: "play")
+        }
+        .buttonStyle(.bordered)
+        .disabled(actions.isEmpty)
       }
 
       TextField("Shortcut name", text: $shortcutName)
         .textFieldStyle(.roundedBorder)
       TextField("Shortcut text input", text: $shortcutInputText)
         .textFieldStyle(.roundedBorder)
-      Button("Run Shortcut", action: onRunShortcutTapped)
-        .buttonStyle(.bordered)
+
+      Button(action: onRunShortcutTapped) {
+        Label("Run Shortcut", systemImage: "sparkles")
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .buttonStyle(.bordered)
 
       if !status.isEmpty {
-        Text(status)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Label(status, systemImage: "info.circle")
+          .agentOutputBlock(monospaced: true)
       }
 
       ForEach(actions) { action in
-        VStack(alignment: .leading, spacing: 2) {
-          Text(action.title)
-          Text(action.summary)
-            .foregroundStyle(.secondary)
-        }
-        .font(.caption)
+        SupportedActionRow(action: action)
       }
     }
+  }
+}
+
+private struct SupportedActionRow: View {
+  let action: SupportedAppAction
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 5) {
+      Label(action.title, systemImage: "bolt")
+        .font(.caption.weight(.semibold))
+        .lineLimit(1)
+      Text(action.summary)
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .lineLimit(2)
+      Text(action.id)
+        .font(.caption2.monospaced())
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+    }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 }
 
