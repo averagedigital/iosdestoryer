@@ -3571,32 +3571,75 @@ private struct ContactsSection: View {
   let onConfirmPreviewTapped: () -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text("Contacts")
-        .font(.headline)
-
-      HStack {
-        Button(action: onCheckTapped) {
-          Label("Status", systemImage: "person.crop.circle")
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Contacts")
+            .font(.headline)
+          Text("Contacts framework actions with previewed updates, deletes, and merge plans.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
-        .buttonStyle(.bordered)
 
-        Button("Request", action: onRequestTapped)
+        Spacer(minLength: 8)
+
+        AgentStatusPill(
+          text: status.isEmpty ? "Unknown" : "Checked",
+          systemImage: status.isEmpty ? "person.crop.circle" : "checkmark.circle")
+      }
+
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], spacing: 8) {
+        IndexMetricTile(
+          title: "Results", value: "\(contacts.count)", systemImage: "person.2",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "With email", value: "\(contactsWithEmailCount)", systemImage: "envelope",
+          tint: .accentColor)
+        IndexMetricTile(
+          title: "Preview", value: hasPendingPreview ? "Ready" : "None",
+          systemImage: "checkmark.shield", tint: hasPendingPreview ? .orange : .secondary)
+      }
+
+      Text("Contact mutations stay user-visible: update, delete, and merge return a preview first.")
+        .agentOutputBlock()
+
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 8) {
+          Label("Permission", systemImage: "person.crop.circle")
+            .font(.caption.weight(.semibold))
+          Spacer(minLength: 8)
+          Text(statusValue)
+            .font(.caption.monospaced())
+            .foregroundStyle(.secondary)
+        }
+
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+          Button(action: onCheckTapped) {
+            Label("Status", systemImage: "person.crop.circle")
+          }
           .buttonStyle(.bordered)
 
-        Text(status)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+          Button(action: onRequestTapped) {
+            Label("Request", systemImage: "hand.raised")
+          }
+          .buttonStyle(.bordered)
+        }
       }
+      .agentOutputBlock(monospaced: true)
 
       TextField("Search contacts", text: $query)
         .textFieldStyle(.roundedBorder)
 
-      HStack {
-        Button("Search", action: onSearchTapped)
-          .buttonStyle(.bordered)
-        Button("Duplicates", action: onDuplicatesTapped)
-          .buttonStyle(.bordered)
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onSearchTapped) {
+          Label("Search", systemImage: "magnifyingglass")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onDuplicatesTapped) {
+          Label("Duplicates", systemImage: "person.2")
+        }
+        .buttonStyle(.bordered)
       }
 
       TextField("Given name", text: $givenName)
@@ -3608,22 +3651,37 @@ private struct ContactsSection: View {
       TextField("Phone", text: $phone)
         .textFieldStyle(.roundedBorder)
 
-      HStack {
-        Button("Create", action: onCreateTapped)
-          .buttonStyle(.bordered)
-        Button("Update", action: onUpdatePreviewTapped)
-          .buttonStyle(.bordered)
-        Button("Delete", action: onDeletePreviewTapped)
-          .buttonStyle(.bordered)
-      }
-
-      Button("Merge", action: onMergePreviewTapped)
+      LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 8)], spacing: 8) {
+        Button(action: onCreateTapped) {
+          Label("Create", systemImage: "person.crop.circle.badge.plus")
+        }
         .buttonStyle(.bordered)
 
+        Button(action: onUpdatePreviewTapped) {
+          Label("Update", systemImage: "square.and.pencil")
+        }
+        .buttonStyle(.bordered)
+
+        Button(role: .destructive, action: onDeletePreviewTapped) {
+          Label("Delete", systemImage: "trash")
+        }
+        .buttonStyle(.bordered)
+
+        Button(action: onMergePreviewTapped) {
+          Label("Merge", systemImage: "arrow.triangle.merge")
+        }
+        .buttonStyle(.bordered)
+      }
+
       if !preview.isEmpty {
-        Text(preview)
-          .font(.caption)
-          .foregroundStyle(.secondary)
+        Label(preview, systemImage: hasPendingPreview ? "checkmark.shield" : "info.circle")
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(hasPendingPreview ? .orange : .secondary)
+          .padding(10)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background((hasPendingPreview ? Color.orange : Color.secondary).opacity(0.08))
+          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
         if hasPendingPreview {
           Button("Confirm", role: .destructive, action: onConfirmPreviewTapped)
             .buttonStyle(.borderedProminent)
@@ -3631,17 +3689,77 @@ private struct ContactsSection: View {
       }
 
       ForEach(contacts) { contact in
-        VStack(alignment: .leading, spacing: 2) {
-          Text(contact.displayName.isEmpty ? contact.organizationName : contact.displayName)
-            .font(.caption.weight(.semibold))
+        ContactRow(contact: contact)
+      }
+    }
+  }
+
+  private var statusValue: String {
+    status.isEmpty ? "Unknown" : status
+  }
+
+  private var contactsWithEmailCount: Int {
+    contacts.filter { !$0.emailAddresses.isEmpty }.count
+  }
+}
+
+private struct ContactRow: View {
+  let contact: ContactSummary
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: "person.crop.circle")
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(Color.accentColor)
+        .frame(width: 28, height: 28)
+        .background(AgentTheme.accentWash)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+      VStack(alignment: .leading, spacing: 3) {
+        Text(primaryTitle)
+          .font(.caption.weight(.semibold))
+          .lineLimit(1)
+
+        if !contact.organizationName.isEmpty && contact.organizationName != primaryTitle {
+          Text(contact.organizationName)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
             .lineLimit(1)
-          Text((contact.emailAddresses + contact.phoneNumbers).joined(separator: " / "))
-            .font(.caption)
+        }
+
+        if !contact.emailAddresses.isEmpty {
+          Label(contact.emailAddresses.joined(separator: ", "), systemImage: "envelope")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+
+        if !contact.phoneNumbers.isEmpty {
+          Label(contact.phoneNumbers.joined(separator: ", "), systemImage: "phone")
+            .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(1)
         }
       }
     }
+    .padding(10)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(AgentTheme.field)
+    .overlay(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .stroke(AgentTheme.softRing, lineWidth: 1)
+    )
+    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+  }
+
+  private var primaryTitle: String {
+    if !contact.displayName.isEmpty {
+      return contact.displayName
+    }
+    if !contact.organizationName.isEmpty {
+      return contact.organizationName
+    }
+    return contact.emailAddresses.first ?? contact.phoneNumbers.first ?? "Unnamed contact"
   }
 }
 
